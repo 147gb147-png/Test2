@@ -2459,26 +2459,28 @@ inputs:[
 ],
 compute(v){
   if(!ok(v.coc)) return {};
-  if(v.coc<=2) return {flags:[F("red","The quarter-life formula needs COC above 2 (the denominator 1 - 1/(COC-1) hits zero at COC 2). At very low cycles the slug washes out almost immediately; use continuous feed instead.")]};
-  const days = Math.abs(Math.log(0.25)/(1-1/(v.coc-1)));
+  if(v.coc<=2) return {flags:[F("red","The formula needs COC above 2: the daily retained fraction 1 - 1/(COC-1) must be positive. At 2 cycles or below the slug washes out almost immediately; use continuous feed instead.")]};
+  const frac = 1-1/(v.coc-1);            /* fraction of the slug still in the system after each day */
+  const days = Math.log(0.25)/Math.log(frac);
   return {
     out:[O("Time to next dose", days, "days", 1, "re-dose when the residual has fallen to ~25% of the slug", true)],
     work:[
-      "Days = | ln(1/4) / (1 - 1/(COC-1)) |",
-      `     = | -1.386 / (1 - 1/${fmt(v.coc-1,2)}) | = | -1.386 / ${fmt(1-1/(v.coc-1),3)} | = ${fmt(days,2)} days`
+      "Days = ln(1/4) / ln(1 - 1/(COC-1))",
+      `     = ln(0.25) / ln(1 - 1/${fmt(v.coc-1,2)}) = -1.386 / ln(${fmt(frac,3)}) = -1.386 / ${fmt(Math.log(frac),3)} = ${fmt(days,2)} days`,
+      `Read: each day the system retains ${fmt(frac*100,0)}% of the slug; after ${fmt(days,1)} days only 25% is left.`
     ],
-    verdict:{level:"ok", msg:`At ${fmt(v.coc,1)} cycles, slug again in about ${fmt(days,1)} day(s). Lower cycles = more bleed = the slug washes out sooner.`},
+    verdict:{level:"ok", msg:`At ${fmt(v.coc,1)} cycles, slug again in about ${fmt(days,1)} day(s). Higher cycles = less bleed = the slug lasts longer.`},
     flags:[
       F("info","Slug quantity: dose to the product's target ppm on system volume (CT-11 gives the volume; CU-01 does the gallons)."),
       F("info","Alternate non-oxidizing biocides to prevent resistance. Never slug two incompatible biocides simultaneously."),
       F("info","Legionella: reference the site's water management plan (ASHRAE 188). This calculation is not a control program.")
     ],
     charts:[{kind:"line", title:"Days between doses vs cycles", xlab:"Cycles of concentration", ylab:"Days to next dose",
-      series:[{name:"Re-dose interval", pts:rng(2.3, Math.max(12, v.coc*1.3), 60).map(c=>[c, Math.abs(Math.log(0.25)/(1-1/(c-1)))])}],
+      series:[{name:"Re-dose interval", pts:rng(2.3, Math.max(12, v.coc*1.3), 60).map(c=>[c, Math.log(0.25)/Math.log(1-1/(c-1))])}],
       markers:[{x:v.coc, y:days, label:`${fmt(v.coc,1)} cycles: ${fmt(days,1)} days`}], xd:1, yd:1}]
   };
 },
-notes:"House formula: days = | ln(1/4) / (1 - 1/(COC-1)) |. No unit conversion needed; the result is already in days."});
+notes:"House formula: days = ln(1/4) / ln(1 - 1/(COC-1)). Both logs are negative, so the result is positive days directly - no unit conversion needed."});
 
 /* indicative ORP vs free halogen (Ag/AgCl reference, pH ~7.5-8.5 cooling water) */
 const ORP_RESID=[[0.05,480],[0.1,520],[0.2,555],[0.35,580],[0.5,600],[0.75,622],[1.0,640],[1.5,665],[2.0,685]];
