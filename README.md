@@ -21,7 +21,8 @@ Plus a browsable **Reference** section (ASME/ABMA limits, steam tables, glycol t
 
 ## Key features
 
-- **Shared water analysis** — enter a lab report once; any input with a "⇩ analysis" chip pulls from it
+- **Shared water analysis** — organized around the tests reps actually run (hardness, iron, free/total chlorine, phosphate, copper, sulfite, chloride, nitrate, molybdate, condensate pH…); any input with a "⇩ analysis" chip pulls from it
+- **Biocide quarter-life dosing** — CT-13 gives both the dilution-model quarter-life and the house estimating formula ln(¼)/(1−1/(COC−1))
 - **Live validation** — amber for unusual values, red block for physically impossible ones
 - **Charts** — savings breakdowns, blowdown-vs-cycles curves, glycol curves, TCF, index gauges, decay curves (all inline SVG, theme-aware, with hover tooltips)
 - **Everything persists** in the browser (localStorage): inputs, water analysis, settings, theme

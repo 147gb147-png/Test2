@@ -49,10 +49,10 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 
 /* ---------- header / nav ---------- */
 header.app{
-  position:sticky; top:0; z-index:50; background:var(--surface);
+  background:var(--surface);
   border-bottom:1px solid var(--border);
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  padding:8px 14px;
+  padding:10px 16px;
 }
 header.app .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.05rem;white-space:nowrap}
 header.app .brand .drop{font-size:1.2rem}
@@ -79,10 +79,11 @@ header.app .spacer{flex:1}
 #searchresults .sr .m{color:var(--muted); font-size:.75rem}
 
 nav#nav{
-  display:flex; gap:6px; overflow-x:auto; padding:8px 14px;
+  display:flex; gap:6px; overflow-x:auto; padding:8px 16px;
   background:var(--bg); border-bottom:1px solid var(--border);
-  position:sticky; top:49px; z-index:40; -webkit-overflow-scrolling:touch;
+  position:sticky; top:0; z-index:40; -webkit-overflow-scrolling:touch;
 }
+@media(max-width:920px){ header.app .sub{display:none} #searchbox{width:130px} }
 nav#nav button{
   background:var(--surface); border:1px solid var(--border); color:var(--ink2);
   border-radius:20px; padding:7px 14px; font-size:.85rem; cursor:pointer; white-space:nowrap;
@@ -91,36 +92,36 @@ nav#nav button .n{color:var(--muted); font-size:.72rem; margin-left:4px}
 nav#nav button.active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
 nav#nav button.active .n{color:var(--accent-ink); opacity:.75}
 
-main{max-width:1180px; margin:0 auto; padding:14px}
+main{max-width:1060px; margin:0 auto; padding:16px 16px 30px}
 section[data-page]{display:none}
 section[data-page].active{display:block}
 .pagehead{margin:4px 0 14px}
 .pagehead p{color:var(--ink2); margin:.2em 0; max-width:75ch}
 
 /* ---------- cards ---------- */
-.cards{display:grid; grid-template-columns:1fr; gap:12px}
-@media(min-width:980px){ .cards{grid-template-columns:1fr 1fr} .cards details[open]{grid-column:span 2} }
+.cards{display:flex; flex-direction:column; gap:10px}
 details.calc{
   background:var(--surface); border:1px solid var(--border); border-radius:12px;
-  overflow:hidden;
+  overflow:hidden; scroll-margin-top:58px;
 }
 details.calc>summary{
-  list-style:none; cursor:pointer; padding:12px 14px;
-  display:flex; align-items:baseline; gap:10px;
+  list-style:none; cursor:pointer; padding:11px 16px; display:block;
 }
+details.calc>summary:hover{background:var(--chip)}
 details.calc>summary::-webkit-details-marker{display:none}
+details.calc>summary .srow{display:flex; align-items:center; gap:10px}
 details.calc>summary .cid{
   font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.72rem; font-weight:700;
   background:var(--chip); color:var(--ink2); border-radius:6px; padding:2px 7px; white-space:nowrap;
 }
 details.calc>summary .ct{font-weight:650; font-size:.95rem}
-details.calc>summary .cp{color:var(--muted); font-size:.8rem; flex-basis:100%;}
+details.calc>summary .cp{color:var(--muted); font-size:.78rem; margin-top:3px; line-height:1.35}
 details.calc>summary .caret{margin-left:auto; color:var(--muted); transition:transform .15s}
 details.calc[open]>summary .caret{transform:rotate(90deg)}
-details.calc[open]>summary{border-bottom:1px solid var(--border)}
-.calcbody{padding:12px 14px 16px}
+details.calc[open]>summary{border-bottom:1px solid var(--border); background:transparent}
+.calcbody{padding:14px 16px 16px}
 
-.ingrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:10px; margin-bottom:6px}
+.ingrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-bottom:6px}
 .field label{display:block; font-size:.74rem; color:var(--ink2); margin-bottom:3px; font-weight:600}
 .field .uwrap{display:flex; align-items:center; gap:6px}
 .field input[type=number],.field input[type=text],.field select{
@@ -423,10 +424,17 @@ const SETTINGS_DEF = [
   {g:"General", k:"tdsK", l:"Conductivity → TDS factor K", d:0.65, help:"TDS ≈ µS/cm × K. 0.50 RO permeate · 0.65 municipal (default) · 0.70 softened/high-alk"},
   {g:"General", k:"hoursYr", l:"Operating hours per year", d:8760, help:"Default for annualized savings"},
   {g:"General", k:"tdsToCaCO3", l:"TDS → as-CaCO₃ equivalence factor", d:0.85, help:"Used in leakage estimator (PT-08)"},
-  {g:"Pretreatment", k:"feMult", l:"Iron compensation (gpg hardness per ppm Fe)", d:5, help:"Common heuristic 4–5 gpg per ppm Fe (PT-03)"},
-  {g:"Pretreatment", k:"mnMult", l:"Manganese compensation (gpg per ppm Mn)", d:5, help:"PT-03"},
-  {g:"Pretreatment", k:"brineSatLbGal", l:"Saturated brine, lb NaCl per gal", d:2.99, help:"At 60 °F (26.4% NaCl)"},
-  {g:"Pretreatment", k:"saltDensity", l:"Bulk salt density, lb/ft³", d:70, help:"Solar / pellet salt"},
+  {g:"Default utility costs", k:"fuelCost", l:"Fuel cost, $/MMBTU", d:8, help:"Prefills the savings calculators — override per site"},
+  {g:"Default utility costs", k:"waterCost", l:"Water cost, $/1000 gal", d:4},
+  {g:"Default utility costs", k:"sewerCost", l:"Sewer cost, $/1000 gal", d:5},
+  {g:"Default utility costs", k:"elecCost", l:"Electricity cost, $/kWh", d:0.12},
+  {g:"Softener practice", k:"feMult", l:"Iron compensation (gpg hardness per ppm Fe)", d:5, help:"Common heuristic 4–5 gpg per ppm Fe (PT-03); ×17.1 for ppm basis"},
+  {g:"Softener practice", k:"mnMult", l:"Manganese compensation (gpg per ppm Mn)", d:5, help:"PT-03"},
+  {g:"Softener practice", k:"swSF", l:"Sizing safety factor", d:0.9, help:"Prefills PT-04"},
+  {g:"Softener practice", k:"swFlowRate", l:"Flow-sizing service rate, gpm/ft³", d:8, help:"PT-04 flow mode: resin = peak gpm ÷ this"},
+  {g:"Softener practice", k:"saltDoseDef", l:"Default salt dose, lb NaCl/ft³", d:8},
+  {g:"Softener practice", k:"brineSatLbGal", l:"Saturated brine, lb NaCl per gal", d:2.99, help:"At 60 °F (26.4% NaCl)"},
+  {g:"Softener practice", k:"saltDensity", l:"Bulk salt density, lb/ft³", d:70, help:"Solar / pellet salt"},
   {g:"Boilers", k:"boilerEff", l:"Default boiler efficiency, %", d:80, help:"Used by BL-05/06/07 when not overridden"},
   {g:"Boilers", k:"co2Factor", l:"CO₂ per ppm feedwater alkalinity (practical)", d:0.79, help:"0.88 theoretical × 0.90 LP breakdown. Use 0.88 above 250 psig (BL-14)"},
   {g:"Cooling towers", k:"evapK", l:"Evaporation constant (primary)", d:0.001, help:"Classic rule: 1% of recirc per 10 °F range. Slightly conservative"},
@@ -446,6 +454,8 @@ const SETTINGS_DEF = [
   {g:"Cooling tower cycle limits — with inhibitor", k:"mgsiT", l:"Mg × SiO₂ product", d:50000},
   {g:"Cooling tower cycle limits — metallurgy", k:"cl304", l:"Chloride limit, 304 SS wetted, ppm", d:150, help:"Metallurgical limit — chemistry cannot raise it"},
   {g:"Cooling tower cycle limits — metallurgy", k:"cl316", l:"Chloride limit, 316 SS wetted, ppm", d:300},
+  {g:"Closed loops", k:"nitriteMin", l:"Nitrite pitting threshold, ppm as NO₂", d:500, help:"Below this, partial films pit — used by CL-06 / CL-08"},
+  {g:"Closed loops", k:"loopPHmin", l:"Minimum loop pH for nitrite programs", d:8.5},
   {g:"Reverse osmosis", k:"tcfCoeff", l:"TCF membrane coefficient", d:2640, help:"ASTM value for most TFC polyamide membranes; some publish 2700/3020"},
   {g:"Reverse osmosis", k:"gypsumASpct", l:"Gypsum saturation allowed with antiscalant, % of Ksp", d:250, help:"Typical antiscalants permit 150–400%"},
   {g:"Reverse osmosis", k:"lsiAS", l:"Concentrate LSI allowed with antiscalant", d:1.8, help:"Per antiscalant product rating"},
@@ -605,26 +615,34 @@ function band(x, rows, last){
 
 /* ---------------- shared water analysis ---------------- */
 const WA_FIELDS = [
-  {k:"ph", l:"pH", u:""},
+  /* the tests reps actually run in the field, first */
+  {g:"Common field tests", k:"ph", l:"pH", u:""},
   {k:"cond", l:"Conductivity", u:"µS/cm"},
-  {k:"tds", l:"TDS", u:"ppm"},
+  {k:"temp", l:"Temperature", u:"°F"},
   {k:"th", l:"Total hardness", u:"ppm CaCO₃"},
   {k:"cah", l:"Calcium hardness", u:"ppm CaCO₃"},
+  {k:"fe", l:"Total iron", u:"ppm"},
+  {k:"cl2", l:"Free chlorine", u:"ppm"},
+  {k:"tcl2", l:"Total chlorine", u:"ppm"},
+  {k:"po4", l:"Phosphate", u:"ppm PO₄"},
+  {k:"cu", l:"Copper", u:"ppm"},
+  {k:"so3", l:"Sulfite", u:"ppm SO₃"},
+  {k:"cl", l:"Chloride", u:"ppm"},
+  {k:"no3", l:"Nitrate", u:"ppm"},
+  {k:"moly", l:"Molybdate", u:"ppm MoO₄"},
+  {k:"condph", l:"Condensate pH", u:""},
+  /* lab / extended values */
+  {g:"Extended / lab analysis", k:"tds", l:"TDS", u:"ppm"},
   {k:"mgh", l:"Magnesium hardness", u:"ppm CaCO₃"},
   {k:"malk", l:"M-alkalinity", u:"ppm CaCO₃"},
   {k:"palk", l:"P-alkalinity", u:"ppm CaCO₃"},
-  {k:"cl", l:"Chloride", u:"ppm"},
   {k:"so4", l:"Sulfate", u:"ppm"},
-  {k:"sio2", l:"Silica", u:"ppm SiO₂"},
-  {k:"fe", l:"Total iron", u:"ppm"},
+  {k:"sio2", l:"Silica (rarely field-tested)", u:"ppm SiO₂"},
   {k:"mn", l:"Manganese", u:"ppm"},
   {k:"na", l:"Sodium", u:"ppm"},
-  {k:"no3", l:"Nitrate", u:"ppm"},
   {k:"ba", l:"Barium", u:"ppb"},
   {k:"sr", l:"Strontium", u:"ppm"},
   {k:"ff", l:"Fluoride", u:"ppm"},
-  {k:"temp", l:"Temperature", u:"°F"},
-  {k:"cl2", l:"Free chlorine", u:"ppm"},
   {k:"sdi", l:"SDI₁₅", u:""}
 ];
 const WA = {};  /* live values, loaded by shell */
@@ -703,9 +721,9 @@ compute(v){
 
 CALCS.push({
 id:"PT-03", mod:"pt", title:"Compensated (Design) Hardness",
-purpose:"Softener sizing hardness including iron and manganese loading. Sizing on raw hardness alone undersizes the unit.",
+purpose:"Design hardness for softener sizing — incoming total hardness (ppm as CaCO₃) plus iron and manganese loading. Sizing on raw hardness alone undersizes the unit.",
 inputs:[
-  {k:"th", l:"Total hardness", u:"gpg", d:"", h:[0,150], s:[0.5,60], wa:"th", waf:x=>x/K.GPG},
+  {k:"th", l:"Incoming total hardness", u:"ppm CaCO₃", d:"", h:[0,2500], s:[10,1000], wa:"th"},
   {k:"fe", l:"Total iron", u:"ppm", d:0, h:[0,10], wa:"fe"},
   {k:"mn", l:"Manganese", u:"ppm", d:0, h:[0,5], wa:"mn"},
   {k:"tds", l:"TDS", u:"ppm", d:"", h:[0,5000], wa:"tds"},
@@ -713,18 +731,19 @@ inputs:[
 ],
 compute(v){
   if(!ok(v.th)) return {};
-  const comp = v.th + (v.fe||0)*S.feMult + (v.mn||0)*S.mnMult;
+  const feAdd=(v.fe||0)*S.feMult*K.GPG, mnAdd=(v.mn||0)*S.mnMult*K.GPG;
+  const comp = v.th + feAdd + mnAdd;
   const flags=[], work=[
-    `Compensated = TH + (Fe × ${S.feMult}) + (Mn × ${S.mnMult})`,
-    `            = ${fmt(v.th,1)} + (${fmt(v.fe||0,2)} × ${S.feMult}) + (${fmt(v.mn||0,2)} × ${S.mnMult}) = ${fmt(comp,1)} gpg`
+    `Compensated = TH + (Fe × ${S.feMult} gpg × 17.1) + (Mn × ${S.mnMult} gpg × 17.1)   [all ppm as CaCO₃]`,
+    `            = ${fmt(v.th,0)} + ${fmt(feAdd,0)} + ${fmt(mnAdd,0)} = ${fmt(comp,0)} ppm as CaCO₃  (${fmt(comp/K.GPG,1)} gpg)`
   ];
-  const out=[O("Compensated hardness", comp, "gpg", 1, `${fmt(comp*K.GPG,0)} ppm as CaCO₃ — use this in PT-04 sizing`, true)];
+  const out=[O("Compensated hardness", comp, "ppm CaCO₃", 0, `${fmt(comp/K.GPG,1)} gpg — feed this into PT-04 sizing`, true)];
   let naRatio = NaN;
   if(ok(v.na) && v.na>0){
-    const naC = v.na*2.176, thC = v.th*K.GPG;
-    naRatio = naC/(thC+naC);
+    const naC = v.na*2.176;
+    naRatio = naC/(v.th+naC);
     out.push(O("Na⁺ / (hardness + Na⁺) ratio", naRatio*100, "%", 1));
-    work.push(`Na ratio = Na-as-CaCO₃ ÷ (TH-as-CaCO₃ + Na-as-CaCO₃) = ${fmt(naC,0)} ÷ (${fmt(thC,0)} + ${fmt(naC,0)}) = ${fmt(naRatio,3)}`);
+    work.push(`Na ratio = Na-as-CaCO₃ ÷ (TH + Na-as-CaCO₃) = ${fmt(naC,0)} ÷ (${fmt(v.th,0)} + ${fmt(naC,0)}) = ${fmt(naRatio,3)}`);
     if(naRatio>0.30) flags.push(F("amber","High sodium/TDS ratio — expect elevated hardness leakage (quantify with PT-08)."));
   }
   if((v.fe||0)>1.0) flags.push(F("red","Iron above 1 ppm — install iron filtration ahead of the softener or the resin will foul."));
@@ -732,34 +751,36 @@ compute(v){
   if((v.mn||0)>0.05) flags.push(F("amber","Manganese above 0.05 ppm fouls resin — pretreatment recommended."));
   return {out, flags, work,
     verdict:{level:(v.fe||0)>1?"red":((v.fe||0)>0.3||(v.mn||0)>0.05?"amber":"ok"),
-      msg:`Design the softener for ${fmt(comp,1)} gpg compensated hardness.`}};
+      msg:`Design the softener for ${fmt(comp,0)} ppm as CaCO₃ (${fmt(comp/K.GPG,1)} gpg) compensated hardness.`}};
 },
-notes:"The 5-gpg-per-ppm iron multiplier is a common industry heuristic (some houses use 4) — tune it in Settings."});
+notes:"The 5-gpg-per-ppm iron multiplier is a common industry heuristic (some houses use 4) — tune it in Settings → Softener practice."});
 
 CALCS.push({
-id:"PT-04", mod:"pt", title:"Softener Sizing (Capacity / Throughput)",
-purpose:"Resin volume, throughput between regenerations, regeneration frequency and salt consumption — the core pretreatment sizing calc.",
+id:"PT-04", mod:"pt", title:"Softener Sizing (Incoming Hardness & Demand)",
+purpose:"Size the softener from incoming hardness and demand on the unit: resin volume, throughput between regenerations, regen frequency and salt consumption.",
 inputs:[
-  {k:"h", l:"Compensated hardness", u:"gpg", d:"", h:[0.5,150], help:"From PT-03"},
-  {k:"vd", l:"Daily water use", u:"gal/day", d:"", h:[1,5e6]},
-  {k:"qp", l:"Peak flow", u:"gpm", d:"", h:[0.1,3000]},
-  {k:"dose", l:"Salt dose", u:"lb/ft³", d:8, h:[4,20], s:[4,15]},
+  {k:"h", l:"Incoming hardness (compensated)", u:"ppm CaCO₃", d:"", h:[8,2500], wa:"th", help:"Use PT-03's compensated value when iron/Mn are present"},
+  {k:"vd", l:"Softener demand — daily water use", u:"gal/day", d:"", h:[1,5e6]},
+  {k:"qp", l:"Peak service flow", u:"gpm", d:"", h:[0.1,3000]},
+  {k:"dose", l:"Salt dose", u:"lb/ft³", d:8, dS:"saltDoseDef", h:[4,20], s:[4,15]},
   {k:"days", l:"Target days between regens", u:"days", d:1, h:[0.25,14]},
-  {k:"sf", l:"Safety factor", u:"", d:0.9, h:[0.7,1.0]},
+  {k:"sf", l:"Safety factor", u:"", d:0.9, dS:"swSF", h:[0.7,1.0]},
   {k:"mode", l:"Sizing mode", t:"sel", d:"cap", opts:[["cap","Size for capacity"],["flow","Size for peak flow"]]},
   {k:"saltcost", l:"Salt cost (optional)", u:"$/lb", d:"", h:[0,2]}
 ],
 compute(v){
   if(!ok(v.h)||!ok(v.vd)) return {};
+  const hGpg = v.h/K.GPG;
   const capk = lint(RESIN_CAP, Math.min(v.dose,15));      /* kgr/ft3 */
   const capg = capk*1000;
-  const grainDay = v.vd*v.h;
+  const grainDay = v.vd*hGpg;
   let resin;
-  const work=[`Resin capacity @ ${fmt(v.dose,1)} lb/ft³ = ${fmt(capk,1)} kgr/ft³ (interpolated)`,
-    `Grain load = ${fmt(v.vd,0)} gal/day × ${fmt(v.h,1)} gpg = ${fmt(grainDay,0)} grains/day`];
+  const work=[`Hardness = ${fmt(v.h,0)} ppm CaCO₃ ÷ 17.1 = ${fmt(hGpg,1)} gpg`,
+    `Resin capacity @ ${fmt(v.dose,1)} lb/ft³ = ${fmt(capk,1)} kgr/ft³ (interpolated)`,
+    `Grain load (demand × hardness) = ${fmt(v.vd,0)} gal/day × ${fmt(hGpg,1)} gpg = ${fmt(grainDay,0)} grains/day`];
   if(v.mode==="flow" && ok(v.qp)){
-    resin = v.qp/8;
-    work.push(`Flow sizing: resin = Q_peak ÷ 8 gpm/ft³ = ${fmt(v.qp,0)} ÷ 8 = ${fmt(resin,2)} ft³`);
+    resin = v.qp/S.swFlowRate;
+    work.push(`Flow sizing: resin = Q_peak ÷ ${S.swFlowRate} gpm/ft³ = ${fmt(v.qp,0)} ÷ ${S.swFlowRate} = ${fmt(resin,2)} ft³`);
   } else {
     resin = grainDay*v.days/v.sf/capg;
     work.push(`Required capacity = ${fmt(grainDay,0)} × ${fmt(v.days,2)} days ÷ SF ${fmt(v.sf,2)} = ${fmt(grainDay*v.days/v.sf,0)} grains`,
@@ -767,7 +788,7 @@ compute(v){
   }
   const sizes=[1,1.5,2,3,5,7,10,15,20,30,40,50,60,80,100];
   const vessel = sizes.find(s=>s>=resin) || Math.ceil(resin/10)*10;
-  const thru = vessel*capg*v.sf/v.h;
+  const thru = vessel*capg*v.sf/hGpg;
   const daysBet = thru/v.vd;
   const saltRegen = vessel*v.dose;
   const saltYr = saltRegen*365/daysBet;
@@ -775,7 +796,7 @@ compute(v){
   const effPct = eff/K.SALT_EFF_MAX*100;
   const svc = ok(v.qp)? v.qp/vessel : NaN;
   work.push(`Standard vessel: round ${fmt(resin,2)} ft³ up → ${vessel} ft³`,
-    `Throughput/regen = ${vessel} × ${fmt(capg,0)} × ${fmt(v.sf,2)} ÷ ${fmt(v.h,1)} = ${fmt(thru,0)} gal`,
+    `Throughput/regen = ${vessel} × ${fmt(capg,0)} × ${fmt(v.sf,2)} ÷ ${fmt(hGpg,1)} gpg = ${fmt(thru,0)} gal`,
     `Days between regens = ${fmt(thru,0)} ÷ ${fmt(v.vd,0)} = ${fmt(daysBet,1)}`,
     `Salt = ${vessel} ft³ × ${fmt(v.dose,1)} lb/ft³ = ${fmt(saltRegen,0)} lb/regen → ${fmt(saltYr,0)} lb/yr`,
     `Salt efficiency = ${fmt(capg,0)} ÷ ${fmt(v.dose,1)} = ${fmt(eff,0)} gr/lb (${fmt(effPct,0)}% of the 5,990 gr/lb theoretical max)`);
@@ -804,9 +825,15 @@ compute(v){
   return {out, flags, work,
     verdict:{level:daysBet<1||(ok(svc)&&svc>10)?"red":"ok",
       msg:`${vessel} ft³ vessel · regenerates every ${fmt(daysBet,1)} days · ${fmt(saltRegen,0)} lb salt per regen.`},
-    charts:[{kind:"line", title:"Resin capacity vs salt dose (SAC, 8% crosslink)", xlab:"Salt dose (lb NaCl/ft³)", ylab:"Capacity (kgr/ft³)",
-      series:[{name:"Capacity", pts:rng(4,15,22).map(x=>[x,lint(RESIN_CAP,x)])}],
-      markers:[{x:Math.min(v.dose,15), y:capk, label:`${fmt(v.dose,1)} lb/ft³ → ${fmt(capk,1)} kgr/ft³`}]}]
+    charts:[
+      {kind:"line", title:"Resin capacity vs salt dose (SAC, 8% crosslink)", xlab:"Salt dose (lb NaCl/ft³)", ylab:"Capacity (kgr/ft³)",
+        series:[{name:"Capacity", pts:rng(4,15,22).map(x=>[x,lint(RESIN_CAP,x)])}],
+        markers:[{x:Math.min(v.dose,15), y:capk, label:`${fmt(v.dose,1)} lb/ft³ → ${fmt(capk,1)} kgr/ft³`}]},
+      {kind:"line", title:"Salt efficiency vs dose — lower dose buys more grains per pound", xlab:"Salt dose (lb NaCl/ft³)", ylab:"Salt efficiency (gr/lb)",
+        series:[{name:"Efficiency", pts:rng(4,15,22).map(x=>[x, lint(RESIN_CAP,x)*1000/x])}],
+        markers:[{x:Math.min(v.dose,15), y:eff, label:`your dose → ${fmt(eff,0)} gr/lb`}],
+        hlines:[{y:K.SALT_EFF_MAX, label:"theoretical max 5,990"}], yd:0}
+    ]
   };
 },
 notes:"Capacity table is typical SAC 8% crosslink in Na form — replace with the actual resin data sheet when known. Theoretical max salt efficiency is 5,990 gr/lb NaCl."});
@@ -904,7 +931,7 @@ CALCS.push({
 id:"PT-07", mod:"pt", title:"Softener Efficiency / Performance Audit",
 purpose:"Field diagnostic: is the softener performing? Capacity utilization, salt efficiency and resin health from a service test.",
 inputs:[
-  {k:"inl", l:"Inlet hardness", u:"gpg", d:"", h:[0.1,150], wa:"th", waf:x=>x/K.GPG},
+  {k:"inl", l:"Inlet total hardness", u:"ppm CaCO₃", d:"", h:[2,2500], wa:"th"},
   {k:"outl", l:"Outlet hardness", u:"ppm CaCO₃", d:"", h:[0,500]},
   {k:"gal", l:"Gallons since last regen", u:"gal", d:"", h:[1,1e7]},
   {k:"rated", l:"Rated capacity", u:"kgr", d:"", h:[1,1e5], help:"From PT-04: vessel ft³ × kgr/ft³ × SF"},
@@ -913,15 +940,17 @@ inputs:[
 ],
 compute(v){
   if(!ok(v.inl)||!ok(v.outl)) return {};
-  const removal = (1 - v.outl/(v.inl*K.GPG))*100;
+  const inlGpg = v.inl/K.GPG;
+  const removal = (1 - v.outl/v.inl)*100;
   const vres = band(v.outl, [[1,"ok","Excellent — < 1 ppm"],[5,"ok","Acceptable for most boiler service"],[17,"amber","Marginal (5–17 ppm) — investigate"]], {lv:"red",msg:"Failing — hard water passing to service (> 1 gpg)"});
   const out=[O("Hardness removal", removal, "%", 1), O("Outlet hardness", v.outl, "ppm CaCO₃", 1, vres.msg, true)];
-  const work=[`Removal = (1 − ${fmt(v.outl,1)} ÷ (${fmt(v.inl,1)} × 17.1)) × 100 = ${fmt(removal,1)}%`];
+  const work=[`Inlet = ${fmt(v.inl,0)} ppm CaCO₃ = ${fmt(inlGpg,1)} gpg`,
+    `Removal = (1 − ${fmt(v.outl,1)} ÷ ${fmt(v.inl,0)}) × 100 = ${fmt(removal,1)}%`];
   const flags=[];
   if(ok(v.gal)){
-    const actGr = v.gal*v.inl;
+    const actGr = v.gal*inlGpg;
     out.push(O("Capacity delivered so far", actGr/1000, "kgr", 1));
-    work.push(`Capacity so far = ${fmt(v.gal,0)} gal × ${fmt(v.inl,1)} gpg = ${fmt(actGr/1000,1)} kgr`);
+    work.push(`Capacity so far = ${fmt(v.gal,0)} gal × ${fmt(inlGpg,1)} gpg = ${fmt(actGr/1000,1)} kgr`);
     if(ok(v.rated)&&v.rated>0){
       const util = actGr/1000/v.rated*100;
       out.push(O("Capacity utilization", util, "%", 0, "of rated capacity"));
@@ -972,12 +1001,15 @@ compute(v){
     {max:9,   f:[[6,.060],[10,.030],[15,.015]], lbl:"> 0.7"}
   ];
   const row = rows.find(r=>naR<r.max);
-  let f = lint(row.f, Math.min(Math.max(v.dose,6),15));
+  const fCo = lint(row.f, Math.min(Math.max(v.dose,6),15));
   const ccNote = v.regen==="cc";
-  if(ccNote) f*=0.3;
+  const f = ccNote? fCo*0.3 : fCo;
   const leak = v.th*f;
   const lo=leak*0.6, hi=leak*1.6;
   return {
+    charts:[{kind:"line", title:"Leakage factor vs salt dose by Na⁺ ratio (co-current)", xlab:"Salt dose (lb NaCl/ft³)", ylab:"Leakage (% of feed hardness)",
+      series: rows.map(r=>({name:`Na ratio ${r.lbl}`, pts:rng(6,15,18).map(x=>[x, lint(r.f,x)*100])})),
+      markers:[{x:Math.min(Math.max(v.dose,6),15), y:fCo*100, label:`your water @ ${fmt(v.dose,0)} lb/ft³`}], yd:2}],
     out:[
       O("Na⁺ / total-cation ratio", naR*100, "%", 0, `row: ${row.lbl}`),
       O("Expected leakage (point)", leak, "ppm CaCO₃", leak<1?2:1, null, true),
@@ -1056,7 +1088,10 @@ compute(v){
       `Effluent Cl = ${fmt(v.cl,0)} + ${fmt(removedC,0)} (removed, as CaCO₃) × 0.709 = ${fmt(effCl,0)} ppm`
     ],
     flags,
-    verdict:{level:(so4C+clC)/tot>0.5?"amber":"ok", msg:`${fmt(resin,1)} ft³ resin @ ${fmt(cap,0)} gr/ft³ · ~${fmt(effAlk,0)} ppm effluent alkalinity.`}
+    verdict:{level:(so4C+clC)/tot>0.5?"amber":"ok", msg:`${fmt(resin,1)} ft³ resin @ ${fmt(cap,0)} gr/ft³ · ~${fmt(effAlk,0)} ppm effluent alkalinity.`},
+    charts:[{kind:"line", title:"Dealkalizer capacity vs alkalinity fraction of total anions", xlab:"Alkalinity ÷ total anions", ylab:"Capacity (gr/ft³)",
+      series:[{name:"Salt only", pts:DEALK_SALT},{name:"Salt + caustic", pts:DEALK_CAUSTIC}],
+      markers:[{x:Math.min(Math.max(alkF,0.3),0.9), y:cap, label:`this water → ${fmt(cap,0)} gr/ft³`}], xd:2, yd:0}]
   };
 },
 notes:"Consistent with published capacities of 5,000–12,000 gr/ft³ depending on regeneration and anion ratio; salt+caustic adds ~10–15%. Dealk regeneration adds 10–25% to the upstream softener's water demand."});
@@ -1435,7 +1470,7 @@ purpose:"Which feedwater parameter actually caps your cycles — and what fixing
 inputs:[
   {k:"cond", l:"Feedwater conductivity", u:"µS/cm", d:"", h:[1,5000], wa:"cond"},
   {k:"malk", l:"Feedwater M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,500], wa:"malk"},
-  {k:"si", l:"Feedwater silica", u:"ppm SiO₂", d:"", h:[0.1,100], wa:"sio2"},
+  {k:"si", l:"Feedwater silica (optional)", u:"ppm SiO₂", d:"", h:[0.1,100], wa:"sio2", help:"Rarely field-tested — leave blank if unknown"},
   {k:"th", l:"Feedwater hardness", u:"ppm CaCO₃", d:"", h:[0,50], wa:"th"},
   {k:"psig", l:"Boiler pressure", u:"psig", d:125, h:[0,2000]},
   {k:"type", l:"Boiler type", t:"sel", d:"ft", opts:[["ft","Firetube"],["wt","Watertube"],["sh","Watertube + superheater/turbine"]]}
@@ -1493,12 +1528,12 @@ inputs:[
   {k:"c2", l:"Proposed COC", u:"", d:"", h:[1.2,100]},
   {k:"psig", l:"Boiler pressure", u:"psig", d:100, h:[0,600]},
   {k:"mkT", l:"Makeup temperature", u:"°F", d:60, h:[35,212]},
-  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, h:[1,60]},
-  {k:"eff", l:"Boiler efficiency", u:"%", d:80, h:[50,99]},
-  {k:"water", l:"Water cost", u:"$/1000 gal", d:4, h:[0,50]},
-  {k:"sewer", l:"Sewer cost", u:"$/1000 gal", d:5, h:[0,50]},
+  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, dS:"fuelCost", h:[1,60]},
+  {k:"eff", l:"Boiler efficiency", u:"%", d:80, dS:"boilerEff", h:[50,99]},
+  {k:"water", l:"Water cost", u:"$/1000 gal", d:4, dS:"waterCost", h:[0,50]},
+  {k:"sewer", l:"Sewer cost", u:"$/1000 gal", d:5, dS:"sewerCost", h:[0,50]},
   {k:"chem", l:"Chemical cost (optional)", u:"$/1000 gal makeup", d:"", h:[0,100]},
-  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, h:[100,8760]},
+  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, dS:"hoursYr", h:[100,8760]},
   {k:"capex", l:"Equipment cost (optional)", u:"$", d:"", h:[0,1e7], help:"For simple payback"}
 ],
 compute(v){
@@ -1556,9 +1591,9 @@ inputs:[
   {k:"psig", l:"Boiler pressure", u:"psig", d:100, h:[5,600]},
   {k:"fpsig", l:"Flash tank pressure", u:"psig", d:5, h:[0,150]},
   {k:"drainT", l:"Blowdown-to-drain temp", u:"°F", d:90, h:[50,208], help:"After the heat exchanger"},
-  {k:"eff", l:"Boiler efficiency", u:"%", d:80, h:[50,99]},
-  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, h:[1,60]},
-  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, h:[100,8760]}
+  {k:"eff", l:"Boiler efficiency", u:"%", d:80, dS:"boilerEff", h:[50,99]},
+  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, dS:"fuelCost", h:[1,60]},
+  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, dS:"hoursYr", h:[100,8760]}
 ],
 compute(v){
   if(!ok(v.bd)) return {};
@@ -1584,7 +1619,10 @@ compute(v){
       `HX = ${fmt(resid,0)} lb/hr × (${fmt(tFl,0)} − ${fmt(v.drainT,0)}) °F = ${fmt(hx,0)} BTU/hr`,
       `Fuel $ = ${fmt(totBTU,0)} ÷ ${fmt(v.eff/100,2)} × ${fmt(v.hours,0)} ÷ 10⁶ × $${fmt(v.fuel,2)} = $${fmt(fuelVal,0)}/yr`
     ],
-    flags:[F("info","Typical: 100 psig blowdown flashed to 5 psig yields roughly 12–14% flash steam — usually sent to the deaerator.")]
+    flags:[F("info","Typical: 100 psig blowdown flashed to 5 psig yields roughly 12–14% flash steam — usually sent to the deaerator.")],
+    charts:[{kind:"line", title:"Flash steam yield vs flash tank pressure", xlab:"Flash tank pressure (psig)", ylab:"Flash steam (%)",
+      series:[{name:"Flash %", pts:rng(0,Math.min(60,v.psig*0.6),30).map(p=>[p,(hF(v.psig)-hF(p))/hFG(p)*100])}],
+      markers:[{x:v.fpsig, y:flashPct, label:`${fmt(v.fpsig,0)} psig → ${fmt(flashPct,1)}%`}], xd:0, yd:1}]
   };
 }});
 
@@ -1599,10 +1637,10 @@ inputs:[
   {k:"mkT", l:"Makeup temperature", u:"°F", d:60, h:[35,212]},
   {k:"mkTDS", l:"Makeup TDS", u:"ppm", d:"", h:[1,3000], wa:"tds"},
   {k:"cdTDS", l:"Condensate TDS", u:"ppm", d:10, h:[0,100]},
-  {k:"eff", l:"Boiler efficiency", u:"%", d:80, h:[50,99]},
-  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, h:[1,60]},
+  {k:"eff", l:"Boiler efficiency", u:"%", d:80, dS:"boilerEff", h:[50,99]},
+  {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, dS:"fuelCost", h:[1,60]},
   {k:"water", l:"Water + sewer cost", u:"$/1000 gal", d:9, h:[0,100]},
-  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, h:[100,8760]}
+  {k:"hours", l:"Operating hours/year", u:"hr", d:8760, dS:"hoursYr", h:[100,8760]}
 ],
 compute(v){
   if(![v.steam,v.cr1,v.cr2].every(ok)) return {};
@@ -1631,7 +1669,15 @@ compute(v){
     work.push(`FW TDS = (makeup% × ${fmt(v.mkTDS,0)} + CR% × ${fmt(v.cdTDS||0,0)}) ÷ 100`);
     flags.push(F("info",`Second-order effect: cleaner feedwater (${fmt(fw1,0)} → ${fmt(fw2,0)} ppm TDS) raises achievable cycles. Re-run BL-04 with the new value, then BL-05 — the stacked saving is often as large as the direct heat saving.`));
   }
-  return {out, work, flags};
+  const savAt=cr=>{
+    const g=v.steam*(cr-v.cr1)/100;
+    return g*(v.condT-v.mkT)/(v.eff/100)*v.hours/1e6*v.fuel + g/K.LB_GAL*v.hours/1000*v.water;
+  };
+  return {out, work, flags,
+    charts:[{kind:"line", title:"Direct annual savings vs condensate return achieved", xlab:"Condensate return (%)", ylab:"Savings ($/yr)",
+      series:[{name:"Fuel + water savings", pts:rng(v.cr1, Math.min(95, v.cr2+15), 30).map(cr=>[cr, savAt(cr)])}],
+      markers:[{x:v.cr2, y:fuelS+waterS, label:`target ${fmt(v.cr2,0)}% → $${fmt(fuelS+waterS,0)}/yr`}], xd:0, yd:0}]
+  };
 }});
 
 CALCS.push({
@@ -1978,6 +2024,9 @@ compute(v){
     if(app>15) flags.push(F("amber","Approach > 15 °F checklist: fouled/scaled fill, plugged nozzles, plugged distribution deck, fan pitch/belt slip, air recirculation."));
     flags.push(F("info","Rising approach at constant load is the earliest indicator of fill fouling — trend it visit to visit."));
     verdict={level:av[0]==="amber"?"amber":"ok", msg:`Approach ${fmt(app,1)} °F — ${av[1]}.`};
+    return {out, work, flags, verdict,
+      charts:[{kind:"gauge", title:"Approach temperature", min:0, max:25, value:app,
+        zones:[{to:5,label:"exceptional",lv:"good"},{to:10,label:"good",lv:"good"},{to:15,label:"typical design",lv:"warning"},{to:25,label:"poor — investigate",lv:"crit"}]}]};
   }
   return {out, work, flags, verdict};
 }});
@@ -2058,9 +2107,13 @@ compute(v){
       `M = E + D + B = ${fmt(a.M,1)} gpm`
     ],
     verdict:{level:v.coc<3?"amber":"ok", msg:`At ${fmt(v.coc,1)} cycles: makeup ${fmt(a.M*dayF,0)} gal/day, of which ${fmt(a.B*dayF,0)} goes to drain as blowdown.`},
-    charts:[{kind:"line", title:"Makeup water vs cycles (diminishing returns above ~6)", xlab:"Cycles of concentration", ylab:"Makeup (gal/day)",
-      series:[{name:`Classic k=${S.evapK}`, pts:curve(S.evapK)},{name:`Heat-balance k=${S.evapKalt}`, pts:curve(S.evapKalt), dash:true}],
-      markers:[{x:v.coc, y:a.M*dayF, label:`${fmt(v.coc,1)} cycles → ${fmt(a.M*dayF,0)} gpd`}]}]
+    charts:[
+      {kind:"line", title:"Makeup water vs cycles (diminishing returns above ~6)", xlab:"Cycles of concentration", ylab:"Makeup (gal/day)",
+        series:[{name:`Classic k=${S.evapK}`, pts:curve(S.evapK)},{name:`Heat-balance k=${S.evapKalt}`, pts:curve(S.evapKalt), dash:true}],
+        markers:[{x:v.coc, y:a.M*dayF, label:`${fmt(v.coc,1)} cycles → ${fmt(a.M*dayF,0)} gpd`}]},
+      {kind:"bar", title:"Where the makeup water goes (gal/day)", ylab:"gal/day",
+        cats:["Evaporation","Blowdown","Drift"], vals:[a.E*dayF, a.B*dayF, a.D*dayF], hl:1, yd:0}
+    ]
   };
 },
 notes:"Both evaporation constants are in current use: 0.001 (classic 1%-per-10°F rule, slightly conservative) and 0.00085 (Perry's heat-balance value, better in cool weather). The spread between them is real uncertainty — quote a range, not false precision."});
@@ -2227,13 +2280,13 @@ id:"CT-05", mod:"ct", title:"Maximum Safe Cycles (Multi-Constraint Limit Finder)
 purpose:"What actually caps cycles on this makeup water — every constraint evaluated, binding one highlighted. Limits are editable in Settings.",
 inputs:[
   {k:"ca", l:"Makeup calcium hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"cah"},
-  {k:"mg", l:"Makeup magnesium hardness", u:"ppm CaCO₃", d:"", h:[0,1500], wa:"mgh"},
+  {k:"mg", l:"Makeup magnesium hardness (optional)", u:"ppm CaCO₃", d:"", h:[0,1500], wa:"mgh"},
   {k:"alk", l:"Makeup M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,1000], wa:"malk"},
   {k:"tds", l:"Makeup TDS", u:"ppm", d:"", h:[10,5000], wa:"tds"},
   {k:"cond", l:"Makeup conductivity", u:"µS/cm", d:"", h:[10,8000], wa:"cond"},
-  {k:"si", l:"Makeup silica", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2"},
+  {k:"si", l:"Makeup silica (optional)", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2", help:"Rarely field-tested — skip if unknown"},
   {k:"cl", l:"Makeup chloride", u:"ppm", d:"", h:[0.5,2000], wa:"cl"},
-  {k:"so4", l:"Makeup sulfate", u:"ppm", d:"", h:[0,2000], wa:"so4"},
+  {k:"so4", l:"Makeup sulfate (optional)", u:"ppm", d:"", h:[0,2000], wa:"so4"},
   {k:"temp", l:"Hottest skin temperature", u:"°F", d:110, h:[40,250]},
   {k:"prog", l:"Treatment", t:"sel", d:"treated", opts:[["untreated","Untreated"],["treated","Good inhibitor program"]]},
   {k:"ss", l:"Stainless steel wetted", t:"sel", d:"none", opts:[["none","None / mild steel & copper"],["304","304 SS exchangers"],["316","316 SS exchangers"]]},
@@ -2313,8 +2366,9 @@ compute(v){
     const rt=vol/(v.bdgpm*60);
     const hl=0.693*rt;
     out.push(O("Retention time", rt, "hr", 1),
-      O("Chemical half-life", hl, "hr", 1, "time for a slug to dilute to 50% via blowdown alone"));
-    work.push(`Retention = ${fmt(vol,0)} ÷ (${fmt(v.bdgpm,1)} gpm × 60) = ${fmt(rt,1)} hr · half-life = 0.693 × ${fmt(rt,1)} = ${fmt(hl,1)} hr`);
+      O("Chemical half-life", hl, "hr", 1, "time for a slug to dilute to 50% via blowdown alone"),
+      O("Chemical quarter-life", 2*hl, "hr", 1, "time to dilute to 25% — the usual biocide re-dose point (CT-13)"));
+    work.push(`Retention = ${fmt(vol,0)} ÷ (${fmt(v.bdgpm,1)} gpm × 60) = ${fmt(rt,1)} hr · half-life = 0.693 × ${fmt(rt,1)} = ${fmt(hl,1)} hr · quarter-life = ln 4 × ${fmt(rt,1)} = ${fmt(2*hl,1)} hr`);
     if(hl<4) flags.push(F("amber","Half-life under 4 hr — slug dosing will be ineffective; use continuous feed."));
     if(hl>72) flags.push(F("amber","Half-life over 72 hr — watch for chemical accumulation and degradation byproducts; consider reduced feed rates."));
   }
@@ -2373,6 +2427,7 @@ inputs:[
   {k:"dens", l:"Product density", u:"lb/gal", d:9.0, h:[8,12]},
   {k:"mic", l:"Minimum inhibitory conc. (MIC)", u:"ppm", d:"", h:[0.5,500], help:"From product data sheet"},
   {k:"bdgpm", l:"Blowdown + drift rate", u:"gpm", d:"", h:[0.05,5000]},
+  {k:"coc", l:"COC (house quarter-life formula)", u:"", d:"", h:[2.05,50], help:"Used in the house estimate ln(¼)/(1−1/(COC−1))"},
   {k:"demand", l:"Halogen demand + residual", u:"ppm", d:"", h:[0.1,20], sep:"Oxidizing mode", help:"System demand + target free residual"},
   {k:"mk", l:"Makeup", u:"gal/day", d:"", h:[10,1e7]}
 ],
@@ -2398,6 +2453,17 @@ compute(v){
   let chart=null;
   if(ok(v.bdgpm)&&v.bdgpm>0){
     const tauHr = v.vol/(v.bdgpm*60);
+    const tQuarter = tauHr*Math.log(4);
+    out.push(O("Quarter-life (dilution model)", tQuarter, "hr", 1, "residual falls to 25% of the slug — the usual re-dose point", true));
+    work.push(`Quarter-life = HTI × ln 4 = ${fmt(tauHr,1)} hr × 1.386 = ${fmt(tQuarter,1)} hr   (HTI = V ÷ (B+D))`);
+    if(ok(v.coc)&&v.coc>2){
+      const qf = Math.abs(Math.log(0.25)/(1-1/(v.coc-1)));
+      out.push(O("Quarter-life (house formula)", qf*tauHr, "hr", 1, `factor ${fmt(qf,2)} × holding time index`));
+      work.push(`House estimate: |ln(¼) ÷ (1 − 1/(COC−1))| = |−1.386 ÷ ${fmt(1-1/(v.coc-1),3)}| = ${fmt(qf,2)} × HTI ${fmt(tauHr,1)} hr = ${fmt(qf*tauHr,1)} hr`);
+    } else if(ok(v.coc)) {
+      work.push("House quarter-life formula needs COC > 2 (denominator 1 − 1/(COC−1) must stay positive).");
+    }
+    flags.push(F("info",`Re-dose on the quarter-life: dose again when the residual falls to ~25% of the slug (≈ every ${fmt(tQuarter,1)} hr at these losses), or sooner if the MIC demands it.`));
     if(ok(v.mic)&&v.mic<v.target){
       const tMIC = tauHr*Math.log(v.target/v.mic);
       out.push(O("Time above MIC (dilution only)", tMIC, "hr", 1, "ignores degradation & consumption — real time is shorter"),
@@ -2407,6 +2473,7 @@ compute(v){
     const pts=rng(0,tauHr*3,40).map(t=>[t, v.target*Math.exp(-t/tauHr)]);
     chart={kind:"line", title:"Slug decay by blowdown dilution", xlab:"Hours after slug", ylab:"Concentration (ppm)",
       series:[{name:"C(t)", pts}],
+      markers:[{x:tQuarter, y:v.target/4, label:`quarter-life ${fmt(tQuarter,1)} hr`}],
       hlines: ok(v.mic)?[{y:v.mic, label:`MIC ${fmt(v.mic,0)} ppm`}]:[]};
   }
   flags.push(F("info","Alternate non-oxidizing biocides to prevent resistance. Never slug two incompatible biocides simultaneously."));
@@ -2482,6 +2549,8 @@ compute(v){
   if(v.days<30) flags.push(F("amber","Exposure under 30 days over-reports corrosion (initial film formation). 60–90 days is standard."));
   if(v.metal==="cu") flags.push(F("info","Elevated copper rates plate copper onto steel and drive galvanic attack — address copper first (azole feed)."));
   return {
+    charts:[{kind:"gauge", title:`Corrosion rate — ${m.n}`, min:0, max:m.fr*1.6, value:Math.min(mpy,m.fr*1.6),
+      zones:[{to:m.ex,label:"excellent",lv:"good"},{to:m.gd,label:"good",lv:"good"},{to:m.fr,label:"fair",lv:"warning"},{to:m.fr*1.6,label:"poor",lv:"crit"}]}],
     out:[O("Corrosion rate", mpy, "mpy", 2, `${m.n}: <${m.ex} excellent · ${m.ex}–${m.gd} good · ${m.gd}–${m.fr} fair · >${m.fr} poor`, true)],
     work:[`MPY = (534 × ${fmt(v.wl,1)} mg) ÷ (${m.d} g/cm³ × ${fmt(v.area,1)} in² × ${fmt(v.days*24,0)} hr) = ${fmt(mpy,2)}`,
       `(equivalent: 22,250 × ${fmt(v.wl/1000,3)} g ÷ (D × A × ${fmt(v.days,0)} days))`],
@@ -2574,7 +2643,9 @@ compute(v){
   if(ok(v.ndp)&&v.ndp>0) out.push(O("Specific flux (permeability)", flux/v.ndp, "gfd/psi", 3, "trend this at constant temperature"));
   return {out,
     work:[`Flux = ${fmt(v.qp,1)} gpm × 1440 ÷ ${fmt(tot,0)} ft² = ${fmt(flux,1)} gfd`],
-    flags, verdict:{level:lvl==="info"?"info":lvl, msg:`Flux ${fmt(flux,1)} gfd — ${msg}.`}};
+    flags, verdict:{level:lvl==="info"?"info":lvl, msg:`Flux ${fmt(flux,1)} gfd — ${msg}.`},
+    charts:[{kind:"gauge", title:"Average flux vs design window for this feed", min:0, max:hi*1.6, value:Math.min(flux,hi*1.6),
+      zones:[{to:lo,label:"under-fluxed",lv:"warning"},{to:hi,label:"design window",lv:"good"},{to:hi*1.6,label:"over-fluxed — fouling risk",lv:"crit"}]}]};
 }});
 
 CALCS.push({
@@ -2728,7 +2799,7 @@ inputs:[
   {k:"ca", l:"Feed calcium hardness", u:"ppm CaCO₃", d:"", h:[0.5,2000], wa:"cah"},
   {k:"alk", l:"Feed M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,1000], wa:"malk"},
   {k:"so4", l:"Feed sulfate", u:"ppm", d:"", h:[0,3000], wa:"so4"},
-  {k:"si", l:"Feed silica", u:"ppm SiO₂", d:"", h:[0,150], wa:"sio2"},
+  {k:"si", l:"Feed silica (optional)", u:"ppm SiO₂", d:"", h:[0,150], wa:"sio2", help:"Rarely field-tested — skip if unknown"},
   {k:"ba", l:"Feed barium", u:"ppb", d:0, h:[0,5000], wa:"ba"},
   {k:"sr", l:"Feed strontium", u:"ppm", d:0, h:[0,50], wa:"sr"},
   {k:"fl", l:"Feed fluoride", u:"ppm", d:0, h:[0,20], wa:"ff"},
@@ -2813,7 +2884,14 @@ compute(v){
     verdict:{level:anyFail?"red":(v.rec/100>mrAS?"red":"ok"),
       msg: v.rec/100<=mrAS? `${fmt(v.rec,0)}% recovery is workable with a properly-dosed antiscalant (max ≈ ${fmt(mrAS*100,0)}%; without antiscalant ≈ ${fmt(mrNo*100,0)}%).`
         : `${fmt(v.rec,0)}% recovery exceeds the ≈ ${fmt(mrAS*100,0)}% antiscalant ceiling — reduce recovery, add acid, or improve pretreatment.`},
-    charts:[ok(v.si)&&v.si>0?{kind:"line", title:"Amorphous silica solubility vs temperature", xlab:"Temperature (°C)", ylab:"Solubility (ppm SiO₂)",
+    charts:[
+      (()=>{
+        const bars=cur.rows.filter(x=>x.kind==="pct").map(x=>[x.sp, Math.min(x.val,500)]);
+        if(ok(v.si)&&v.si>0){ const sr=cur.rows.find(x=>x.kind==="ppm"); if(sr) bars.push(["Silica", Math.min(sr.val/sr.solub*100,500)]); }
+        return bars.length>=2?{kind:"bar", title:"Concentrate saturation by species (% of limit, untreated basis — capped at 500%)", ylab:"% of saturation limit",
+          cats:bars.map(b=>b[0]), vals:bars.map(b=>b[1]), yd:0}:null;
+      })(),
+      ok(v.si)&&v.si>0?{kind:"line", title:"Amorphous silica solubility vs temperature", xlab:"Temperature (°C)", ylab:"Solubility (ppm SiO₂)",
       series:[{name:"Solubility", pts:SILICA_SOL}],
       markers:[{x:F2C(v.temp), y:lint(SILICA_SOL,F2C(v.temp)), label:`limit @ ${fmt(F2C(v.temp),0)} °C`}],
       hlines:[{y:v.si*cur.CF, label:`your concentrate: ${fmt(v.si*cur.CF,0)} ppm`}]}:null].filter(Boolean)
@@ -2868,7 +2946,7 @@ inputs:[
   {k:"na", l:"Feed sodium", u:"ppm", d:"", h:[0,15000], wa:"na"},
   {k:"cl", l:"Feed chloride", u:"ppm", d:"", h:[0,25000], wa:"cl"},
   {k:"no3", l:"Feed nitrate", u:"ppm", d:"", h:[0,500], wa:"no3"},
-  {k:"si", l:"Feed silica", u:"ppm SiO₂", d:"", h:[0,150], wa:"sio2"},
+  {k:"si", l:"Feed silica (optional)", u:"ppm SiO₂", d:"", h:[0,150], wa:"sio2", help:"Rarely field-tested — skip if unknown"},
   {k:"alk", l:"Feed alkalinity", u:"ppm CaCO₃", d:"", h:[0,1000], wa:"malk"}
 ],
 compute(v){
@@ -3175,8 +3253,12 @@ compute(v){
   const work=[`Interpolated at ${fmt(v.pct,0)}% ${v.gt==="eg"?"EG":"PG"} (40 °F basis): SG·Cp=${fmt(sgcp,3)}, flow ×${fmt(fm,2)}, head ×${fmt(dpm,2)}`];
   if(ok(v.qw)){ out.push(O("Required glycol flow", v.qw*fm, "gpm", 0, `vs ${fmt(v.qw,0)} gpm water design`)); work.push(`Flow = ${fmt(v.qw,0)} × ${fmt(fm,2)} = ${fmt(v.qw*fm,0)} gpm`); }
   if(ok(v.hw)) out.push(O("Required pump head", v.hw*dpm, "ft", 0, `vs ${fmt(v.hw,0)} ft water design`));
+  const tbl=glyTbl(v.gt);
   return {out, work,
-    flags:[F("amber",`At ${fmt(v.pct,0)}% ${v.gt==="eg"?"EG":"PG"} you need roughly ${fmt((fm-1)*100,0)}% more flow and ${fmt((dpm-1)*100,0)}% more pump head than the water-based design — verify the installed pump can deliver it.`)]};
+    flags:[F("amber",`At ${fmt(v.pct,0)}% ${v.gt==="eg"?"EG":"PG"} you need roughly ${fmt((fm-1)*100,0)}% more flow and ${fmt((dpm-1)*100,0)}% more pump head than the water-based design — verify the installed pump can deliver it.`)],
+    charts:[{kind:"line", title:`Pump penalty vs ${v.gt==="eg"?"EG":"PG"} concentration`, xlab:"Concentration (vol %)", ylab:"Multiplier vs water design (×)",
+      series:[{name:"Flow multiplier", pts:tbl.map(r=>[r.p, r.fm])},{name:"Head multiplier", pts:tbl.map(r=>[r.p, r.dpm])}],
+      markers:[{x:v.pct, y:fm, label:`flow ×${fmt(fm,2)}`},{x:v.pct, y:dpm, label:`head ×${fmt(dpm,2)}`}], xd:0, yd:2}]};
 }});
 
 CALCS.push({
@@ -3251,8 +3333,8 @@ compute(v){
   const flags=[];
   if(v.prog==="nitrite"||v.prog==="blend"){
     const r=ok(v.resid)?v.resid:v.target;
-    if(r<500&&v.prog==="nitrite") flags.push(F("red","Nitrite below 500 ppm is worse than none — partial nitrite films cause severe localized pitting, and nitrite becomes bacterial food. Correct immediately."));
-    if(ok(v.ph)&&v.ph<8.5) flags.push(F("red","Nitrite requires alkaline pH (≥ 8.5). Check for CO₂ ingress or acid contamination."));
+    if(r<S.nitriteMin&&v.prog==="nitrite") flags.push(F("red",`Nitrite below ${fmt(S.nitriteMin,0)} ppm is worse than none — partial nitrite films cause severe localized pitting, and nitrite becomes bacterial food. Correct immediately.`));
+    if(ok(v.ph)&&v.ph<S.loopPHmin) flags.push(F("red",`Nitrite requires alkaline pH (≥ ${fmt(S.loopPHmin,1)}). Check for CO₂ ingress or acid contamination.`));
   }
   if(v.metal==="cu") flags.push(F("amber","Copper present — confirm the product carries azole (5–20 ppm) or add it. Copper corrosion products plate onto steel and drive galvanic attack."));
   if(v.metal==="al") flags.push(F("amber","Aluminum is amphoteric — keep pH BELOW 9.0 or it corrodes rapidly. Standard closed-loop pH targets (up to 10.5) are too high for aluminum systems."));
@@ -3319,7 +3401,7 @@ purpose:"Score a loop sample against healthy-loop ranges and auto-interpret the 
 inputs:[
   {k:"ph", l:"pH", u:"", d:"", h:[4,13]},
   {k:"fe", l:"Total iron", u:"ppm", d:"", h:[0,50]},
-  {k:"cu", l:"Total copper", u:"ppm", d:"", h:[0,10]},
+  {k:"cu", l:"Total copper", u:"ppm", d:"", h:[0,10], wa:"cu"},
   {k:"th", l:"Total hardness", u:"ppm CaCO₃", d:"", h:[0,1000]},
   {k:"cl", l:"Chloride", u:"ppm", d:"", h:[0,2000]},
   {k:"no2", l:"Nitrite residual", u:"ppm", d:"", h:[0,3000]},
@@ -3333,21 +3415,21 @@ inputs:[
 compute(v){
   const rows=[], flags=[];
   const add=(name,val,unit,st,note)=>rows.push([name, ok(val)?fmt(val, val<1?2:1)+" "+unit:val, note, {pill:st}]);
-  if(ok(v.ph)) add("pH", v.ph, "", v.ph>=8.5&&v.ph<=10.5?"ok":"amber", "target 8.5–10.5");
+  if(ok(v.ph)) add("pH", v.ph, "", v.ph>=S.loopPHmin&&v.ph<=10.5?"ok":"amber", `target ${fmt(S.loopPHmin,1)}–10.5`);
   if(ok(v.fe)) add("Iron", v.fe, "ppm", v.fe<1?"ok":v.fe<=3?"amber":"red", "< 1 target · > 3 active corrosion");
   if(ok(v.cu)) add("Copper", v.cu, "ppm", v.cu<0.1?"ok":v.cu<=0.2?"amber":"red", "< 0.1 target");
   if(ok(v.th)) add("Hardness", v.th, "ppm", v.th<50?"ok":"amber", "< 50 target; rising = hard makeup ingress");
   if(ok(v.cl)) add("Chloride", v.cl, "ppm", v.cl<50?"ok":"amber", "< 50 target; rising = makeup ingress");
-  if(ok(v.no2)) add("Nitrite", v.no2, "ppm", v.no2>=Math.min(500,v.no2t)?"ok":"red", `program target ~${fmt(v.no2t,0)}`);
+  if(ok(v.no2)) add("Nitrite", v.no2, "ppm", v.no2>=Math.min(S.nitriteMin,v.no2t)?"ok":"red", `program target ~${fmt(v.no2t,0)}`);
   if(ok(v.do2)) add("Dissolved O₂", v.do2, "ppm", v.do2<0.5?"ok":"amber", "< 0.5 ideally; persistent DO = air ingress");
   if(v.look!=="clear") add("Appearance", v.look==="cloudy"?"Cloudy":"Black water", "", v.look==="blackodor"?"red":"amber", v.look==="cloudy"?"iron oxide or biological solids":"magnetite / possible SRB");
   if(v.srb==="pos") add("SRB", "Detected", "", "red", "any detection is significant");
   if(!rows.length) return {flags:[F("info","Enter at least one loop parameter.")]};
   /* interpretation logic */
   if(ok(v.fe)&&v.fe>3){
-    if(ok(v.no2)&&v.no2>=Math.min(500,v.no2t)&&v.condtr==="stable")
+    if(ok(v.no2)&&v.no2>=Math.min(S.nitriteMin,v.no2t)&&v.condtr==="stable")
       flags.push(F("amber","Iron high but inhibitor in range and conductivity stable → suspended HISTORICAL corrosion product, not active attack. Recommend side-stream filtration / flush rather than more chemical."));
-    else if(ok(v.no2)&&v.no2<Math.min(500,v.no2t))
+    else if(ok(v.no2)&&v.no2<Math.min(S.nitriteMin,v.no2t))
       flags.push(F("red","Iron high with inhibitor low → ACTIVE corrosion. Correct the inhibitor level first, then re-test iron."));
   }
   if(ok(v.th)&&v.th>=50&&v.condtr==="rise") flags.push(F("amber","Hardness and conductivity both rising → makeup water ingress. Quantify the ingress rate with CL-07."));
@@ -3475,11 +3557,11 @@ inputs:[
   {k:"wgal", l:"Water saved", u:"gal/yr", d:"", h:[0,1e8]},
   {k:"wcost", l:"Water + sewer cost", u:"$/1000 gal", d:9, h:[0,100]},
   {k:"fmm", l:"Fuel saved", u:"MMBTU/yr", d:"", h:[0,1e6]},
-  {k:"fcost", l:"Fuel cost", u:"$/MMBTU", d:8, h:[0,60]},
+  {k:"fcost", l:"Fuel cost", u:"$/MMBTU", d:8, dS:"fuelCost", h:[0,60]},
   {k:"cgal", l:"Chemical saved", u:"gal/yr", d:"", h:[0,1e5]},
   {k:"ccost", l:"Chemical cost", u:"$/gal", d:"", h:[0,300]},
   {k:"kwh", l:"Electricity saved", u:"kWh/yr", d:"", h:[0,1e8]},
-  {k:"kcost", l:"Electricity cost", u:"$/kWh", d:0.12, h:[0,1]},
+  {k:"kcost", l:"Electricity cost", u:"$/kWh", d:0.12, dS:"elecCost", h:[0,1]},
   {k:"capex", l:"Capital cost of the improvement", u:"$", d:"", h:[0,1e8]}
 ],
 compute(v){
@@ -3797,8 +3879,8 @@ function inputField(calc, def){
   } else {
     inp=document.createElement("input");
     inp.type="number"; inp.step="any"; inp.inputMode="decimal";
-    if(def.d!==""&&def.d!==undefined) inp.value=def.d;
-    if(def.u) inp.placeholder=def.u;
+    const dflt = def.dS!==undefined && S[def.dS]!==undefined ? S[def.dS] : def.d;
+    if(dflt!==""&&dflt!==undefined) inp.value=dflt;
   }
   inp.id=`in-${calc.id}-${def.k}`;
   const saved=savedInputs[calc.id];
@@ -3908,7 +3990,7 @@ function buildCalcCard(calc){
   const card=el("details","calc");
   card.id=`card-${calc.id}`;
   const sum=el("summary",null,
-    `<span class="cid">${esc(calc.id)}</span><span class="ct">${esc(calc.title)}</span><span class="caret">▸</span><span class="cp">${esc(calc.purpose)}</span>`);
+    `<div class="srow"><span class="cid">${esc(calc.id)}</span><span class="ct">${esc(calc.title)}</span><span class="caret">▸</span></div><div class="cp">${esc(calc.purpose)}</div>`);
   card.appendChild(sum);
   const body=el("div","calcbody");
   const grid=el("div","ingrid");
@@ -3967,7 +4049,10 @@ function buildCalcCard(calc){
     calc.inputs.forEach(def=>{
       const inp=ui[def.k].inp;
       if(def.t==="sel") inp.value=def.d;
-      else inp.value=(def.d===""||def.d===undefined)?"":def.d;
+      else {
+        const dflt = def.dS!==undefined && S[def.dS]!==undefined ? S[def.dS] : def.d;
+        inp.value=(dflt===""||dflt===undefined)?"":dflt;
+      }
     });
     recompute();
   });
@@ -4015,6 +4100,9 @@ function buildHome(){
   const stats=$("#homestats");
   const mods=[["pt","Pretreatment"],["bl","Boilers"],["ct","Cooling towers"],["ro","Reverse osmosis"],["cl","Closed loops"],["cu","Utilities"]];
   stats.appendChild(el("div","stat",`<div class="sv">${CALCS.length}</div><div class="sl">calculators</div>`));
+  const refStat=el("div","stat",`<div class="sv" id="refcount">—</div><div class="sl">reference tables</div>`);
+  refStat.style.cursor="pointer"; refStat.addEventListener("click",()=>gotoPage("ref"));
+  stats.appendChild(refStat);
   mods.forEach(([m,l])=>{
     const st=el("div","stat",`<div class="sv">${CALCS.filter(c=>c.mod===m).length}</div><div class="sl">${l}</div>`);
     st.style.cursor="pointer";
@@ -4042,7 +4130,12 @@ function openCalc(id){
 
 function buildWA(){
   const grid=$("#wagrid");
+  let lastGroup=null;
   WA_FIELDS.forEach(fdef=>{
+    if(fdef.g && fdef.g!==lastGroup){
+      grid.appendChild(el("div","inseph",esc(fdef.g)));
+      lastGroup=fdef.g;
+    }
     const f=el("div","field");
     f.innerHTML=`<label>${esc(fdef.l)}</label>`;
     const wrapU=el("div","uwrap");
@@ -4140,6 +4233,21 @@ function refTable(title, head, rows, note){
 function buildReference(){
   const b=$("#refbody");
   let h="";
+  h+=refTable("Typical operating benchmarks — sanity-check any site against these", ["Metric","Typical / target","Note"],
+    [["Cooling tower COC","3–6","above ~6 the water savings flatten out (see CT-03 curve)"],
+     ["Tower approach","5–10 °F good · 10–15 typical design","rising approach at constant load = fill fouling"],
+     ["Tower drift","0.001–0.005% of recirc","modern eliminators; >0.02% inspect"],
+     ["Boiler COC (LP, softened makeup)","10–50","binding limit from BL-04"],
+     ["Boiler blowdown","2–10% of steam",">10% is money going down the drain (BL-05)"],
+     ["Condensate return","60–90% for heating plants","each point is worth real money (BL-07)"],
+     ["DA outlet dissolved O₂","0.005–0.007 ppm","pressurized DA; atmospheric 0.5–1.0"],
+     ["Soft water hardness","< 1 ppm ideal","> 17 ppm (1 gpg) = softener failing (PT-07)"],
+     ["Softener salt efficiency","2,800–3,300 gr/lb @ 6–8 lb/ft³","theoretical max 5,990"],
+     ["RO recovery (brackish)","70–80%","check concentrate scaling above 80% (RO-06)"],
+     ["RO flux (brackish)","10–18 gfd by feed source","RO-02 has the full table"],
+     ["SDI₁₅ at RO feed","< 3 comfortable · < 5 warranty","RO-09"],
+     ["Closed loop water loss","≈ 0 (tight) · < 0.1%/day","> 0.5%/day = find the leak (CL-07)"],
+     ["Steam purity","< 1 ppm TDS","carryover < 0.1% (BL-13)"]]);
   h+=refTable("ASME/ABMA suggested limits — firetube boilers, 0–300 psig", ["Parameter","Suggested limit"], ASME_FT,
     "Suggested consensus values (ASME CRTD Vol. 34), assuming a functioning deaerator — not code. Note: total alkalinity above ~10% of specific conductance can cause foaming; in that case alkalinity should override conductance as the blowdown control.");
   h+=refTable("ASME/ABMA — watertube boilers (no superheater)", ["Drum pressure","Silica (ppm SiO₂)","Total alk (ppm CaCO₃)","Conductance (µS/cm)"],
@@ -4193,7 +4301,10 @@ function buildReference(){
     series:[{name:"Ethylene glycol", pts:EG_FREEZE},{name:"Propylene glycol", pts:PG_FREEZE}], xd:0, yd:0}));
   chartsBox.appendChild(drawLineChart({title:"RO temperature correction factor", xlab:"Temperature (°F)", ylab:"TCF",
     series:[{name:"TCF (2640)", pts:rng(41,95,36).map(t=>[t,tcf(F2C(t))])}], xd:0, yd:2}));
+  chartsBox.appendChild(drawLineChart({title:"Blowdown vs cycles — why the first few cycles matter most", xlab:"Cycles of concentration", ylab:"Blowdown, % of steam",
+    series:[{name:"Blowdown %", pts:rng(2,20,40).map(c=>[c,100/(c-1)])}], xd:1, yd:0}));
   b.appendChild(chartsBox);
+  const rc=$("#refcount"); if(rc) rc.textContent=b.querySelectorAll("table").length;
 }
 
 /* ---------------- search ---------------- */
