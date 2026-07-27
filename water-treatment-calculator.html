@@ -2201,6 +2201,79 @@ compute(v){
 },
 notes:"Chloride is the reference tracer (fully soluble, unaffected by treatment). A calcium COC lagging chloride is the single most useful scale diagnostic a rep has."});
 
+CALCS.push({
+id:"CT-07", mod:"ct", title:"Ryznar Stability Index (RSI)",
+purpose:"CaCO3 stability read a second way: RSI = 2·pHs - pH. Many programs trend RSI alongside LSI.",
+inputs:[
+  {k:"ph", l:"pH", u:"", d:"", h:[4,12], wa:"ph"},
+  {k:"tds", l:"TDS", u:"ppm", d:"", h:[10,20000], wa:"tds"},
+  {k:"ca", l:"Calcium hardness", u:"ppm CaCO₃", d:"", h:[1,4000], wa:"cah"},
+  {k:"alk", l:"M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,2000], wa:"malk"},
+  {k:"temp", l:"Water temperature", u:"°F", d:95, h:[33,250], wa:"temp", help:"Use hottest skin temp for the conservative view"}
+],
+compute(v){
+  const r = lsiCalc(v.ph, v.tds, v.ca, v.alk, v.temp);
+  if(!r) return {};
+  const vr = rsiVerdict(r.rsi);
+  return {
+    out:[O("RSI", r.rsi, "", 2, vr.msg, true)],
+    work:[`pHs = ${fmt(r.pHs,2)} (same Langelier basis as CT-06)`, `RSI = 2 × ${fmt(r.pHs,2)} − ${fmt(v.ph,2)} = ${fmt(r.rsi,2)}`],
+    verdict:{level:vr.lv, msg:`RSI ${fmt(r.rsi,2)} - ${vr.msg}.`},
+    flags:[F("info","CT-10 runs LSI, RSI, PSI and Larson-Skold together from one input set, with the cycled-water projector.")],
+    charts:[{kind:"gauge", title:"RSI scale", min:3, max:10, value:r.rsi,
+      zones:[{to:5.5,label:"heavy scale",lv:"crit"},{to:6.2,label:"scaling",lv:"warning"},{to:6.8,label:"balanced",lv:"good"},{to:8.5,label:"corrosive",lv:"serious"},{to:10,label:"severe",lv:"crit"}]}]
+  };
+}});
+
+CALCS.push({
+id:"CT-08", mod:"ct", title:"Puckorius Scaling Index (PSI)",
+purpose:"More reliable than LSI/RSI in high-alkalinity buffered cooling water: uses the equilibrium pH instead of the measured one.",
+inputs:[
+  {k:"tds", l:"TDS", u:"ppm", d:"", h:[10,20000], wa:"tds"},
+  {k:"ca", l:"Calcium hardness", u:"ppm CaCO₃", d:"", h:[1,4000], wa:"cah"},
+  {k:"alk", l:"M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,2000], wa:"malk"},
+  {k:"temp", l:"Water temperature", u:"°F", d:95, h:[33,250], wa:"temp"}
+],
+compute(v){
+  const r = lsiCalc(7, v.tds, v.ca, v.alk, v.temp);   /* pH input unused for PSI */
+  if(!r) return {};
+  const vp = psiVerdict(r.psi);
+  return {
+    out:[O("PSI", r.psi, "", 2, vp.msg, true), O("Equilibrium pH", r.pHeq, "", 2, "1.465 × log10(alk) + 4.54")],
+    work:[`pH_eq = 1.465 × log₁₀(${fmt(v.alk,0)}) + 4.54 = ${fmt(r.pHeq,2)}`, `PSI = 2 × pHs ${fmt(r.pHs,2)} − pH_eq ${fmt(r.pHeq,2)} = ${fmt(r.psi,2)}`],
+    verdict:{level:vp.lv, msg:`PSI ${fmt(r.psi,2)} - ${vp.msg}.`},
+    flags:[F("info","No measured pH needed - PSI deliberately ignores it. CT-10 runs all four indices together.")],
+    charts:[{kind:"gauge", title:"PSI scale", min:3, max:9, value:r.psi,
+      zones:[{to:4.5,label:"heavy scale",lv:"crit"},{to:6,label:"scaling",lv:"warning"},{to:6.5,label:"balanced",lv:"good"},{to:7,label:"slight corr.",lv:"warning"},{to:9,label:"corrosive",lv:"serious"}]}]
+  };
+}});
+
+CALCS.push({
+id:"CT-09", mod:"ct", title:"Larson-Skold Index",
+purpose:"Mild-steel corrosivity from the aggressive-to-protective anion ratio: (Cl + SO4) vs alkalinity, in equivalents.",
+inputs:[
+  {k:"cl", l:"Chloride", u:"ppm", d:"", h:[0.5,5000], wa:"cl"},
+  {k:"so4", l:"Sulfate", u:"ppm", d:"", h:[0,5000], wa:"so4"},
+  {k:"alk", l:"M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,2000], wa:"malk"}
+],
+compute(v){
+  const ls = larson(v.cl, v.so4, v.alk);
+  if(!ok(ls)) return {};
+  const vk = lskVerdict(ls);
+  return {
+    out:[O("Larson-Skold index", ls, "", 2, vk.msg, true)],
+    work:[`LS = (Cl/35.45 + SO₄/48.03) ÷ (alkalinity meq)`,
+      `   = (${fmt(v.cl,0)}/35.45 + ${fmt(v.so4,0)}/48.03) ÷ (${fmt(v.alk,0)}/50.04) = ${fmt(ls,2)}`],
+    verdict:{level:vk.lv, msg:`Larson-Skold ${fmt(ls,2)} - ${vk.msg}.`},
+    flags:[
+      F("info","Most relevant when cycling up high-chloride makeup or feeding sulfuric acid - acid feed raises this index even as it lowers the scaling indices (see CT-14)."),
+      F("info","CT-10 runs all four indices together from one input set.")
+    ],
+    charts:[{kind:"gauge", title:"Larson-Skold scale", min:0, max:3, value:Math.min(ls,3),
+      zones:[{to:0.8,label:"protective",lv:"good"},{to:1.2,label:"elevated",lv:"warning"},{to:3,label:"aggressive",lv:"crit"}]}]
+  };
+}});
+
 /* ---- shared index interpretation helpers ---- */
 const LSI_BANDS=[[-2,"red","severely corrosive"],[-0.5,"amber","corrosive"],[0.5,"ok","balanced"],[2.0,"amber","scale-forming (manageable with inhibitor)"]];
 const lsiVerdict=x=> band(x, LSI_BANDS, {lv:"red",msg:"heavily scale-forming"});
@@ -2244,7 +2317,7 @@ compute(v){
 
 CALCS.push({
 id:"CT-10", mod:"ct", title:"Index Dashboard (LSI · RSI · PSI · Larson-Skold) + Cycle Projector",
-purpose:"All four indices from one input set - and what they become at a proposed COC (covers CT-07, CT-08, CT-09).",
+purpose:"Runs CT-06 through CT-09 together from one input set - and projects what they become at a proposed COC.",
 inputs:[
   {k:"ph", l:"pH (measured)", u:"", d:"", h:[4,12], wa:"ph"},
   {k:"tds", l:"TDS", u:"ppm", d:"", h:[10,20000], wa:"tds"},
@@ -4230,7 +4303,9 @@ function buildModulePages(){
     co.addEventListener("click",()=>wrap.querySelectorAll("details.calc").forEach(d=>d.open=false));
     ctl.appendChild(ex); ctl.appendChild(co);
     wrap.parentElement.insertBefore(ctl, wrap);
-    CALCS.filter(c=>c.mod===mod).forEach((c,i)=>{
+    CALCS.filter(c=>c.mod===mod)
+      .sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric:true}))
+      .forEach((c,i)=>{
       const card=buildCalcCard(c);
       if(i===0) card.open=true;
       wrap.appendChild(card);

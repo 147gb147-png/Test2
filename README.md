@@ -6,13 +6,13 @@ A single-file, fully offline calculator suite for industrial water treatment fie
 
 ## What's inside
 
-**71 calculators** across six modules, each returning numbers **plus a plain-language verdict, warning flags, and an expandable "show your work" panel** with the substituted formula:
+**74 calculators** across six modules, each returning numbers **plus a plain-language verdict, warning flags, and an expandable "show your work" panel** with the substituted formula:
 
 | Module | Coverage |
 |---|---|
 | **Pretreatment** (PT-01…16) | Hardness conversions, compensated hardness, softener sizing/geometry/brine/audit, leakage estimator, chloride & split-stream & WAC dealkalization, decarbonators, filter sizing, carbon EBCT, SMBS dechlorination, Fe/Mn oxidation |
 | **Boilers** (BL-01…16) | Cycles by tracer, blowdown & water balance, steam load 3 ways, ASME/ABMA max-cycles limit finder, blowdown savings ($), heat recovery, condensate return value, feedwater blend, O₂ scavengers, DA performance, internal treatment, P/M/OH alkalinity, carryover, amine demand, softener-failure impact |
-| **Cooling Towers** (CT-01…16) | Range/approach/efficiency, heat load, water balance, measured & reconciled COC, max safe cycles, LSI (bulk + skin), LSI/RSI/PSI/Larson-Skold dashboard with cycle projector, system volume & holding time, inhibitor feed, non-oxidizing biocide with quarter-life re-dose timing (CT-13), oxidizing biocide feed - continuous / makeup shock / ORP with pump duty-cycle check (CT-16), acid feed, corrosion coupons |
+| **Cooling Towers** (CT-01…16) | Range/approach/efficiency, heat load, water balance, measured & reconciled COC, max safe cycles, LSI (bulk + skin), standalone RSI / PSI / Larson-Skold plus the combined dashboard with cycle projector, system volume & holding time, inhibitor feed, non-oxidizing biocide with quarter-life re-dose timing (CT-13), oxidizing biocide feed - continuous / makeup shock / ORP with pump duty-cycle check (CT-16), acid feed, corrosion coupons |
 | **Reverse Osmosis** (RO-01…11) | Recovery/rejection/CF, flux, osmotic & net driving pressure, ASTM normalization, 10-15-15 cleaning triggers with foulant diagnosis, concentrate scaling + max safe recovery, antiscalant/acid dosing, permeate projection, SDI, array staging check, CIP |
 | **Closed Loops** (CL-01…09) | System volume (tracer/takeoff/rules), heat load & low-ΔT diagnostic, glycol freeze/burst/derate/blending, inhibitor dosing, leak detection from inhibitor decay, loop water quality assessment, flush & passivation |
 | **Utilities** (CU-01…06) | Universal chemical feed + drawdown stopwatch, dilution, ROI builder, titration helper, ion ⇄ CaCO₃ converter, conductivity ⇄ TDS |
