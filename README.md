@@ -22,7 +22,7 @@ Plus a browsable **Reference** section (ASME/ABMA limits, steam tables, glycol t
 ## Key features
 
 - **Shared water analysis** - organized around the tests reps actually run (hardness, iron, free/total chlorine, phosphate, copper, sulfite, chloride, nitrate, molybdate, condensate pH…); any input with a "⇩ analysis" chip pulls from it
-- **Biocide quarter-life dosing** - CT-13 (non-oxidizing) gives days-to-next-dose from the house formula ln(¼)/(1−1/(COC−1)) plus a dilution-model cross-check; CT-16 (oxidizing) covers continuous, makeup-shock, and ORP-controlled feed
+- **Biocide quarter-life dosing** - CT-13 (non-oxidizing) gives days-to-next-dose directly from ln(1/4) / ln(1 - 1/(COC-1)); CT-16 (oxidizing) covers continuous, makeup-shock, and ORP-controlled feed
 - **Send-to chaining** - one tap carries a result into the next calculator (PT-03→PT-04, BL-04→BL-05, CT-11→CT-13/16, CL-01→CL-06/07, …)
 - **Pin & recents** - star any calculator to pin it to Home; recently-used list auto-populates
 - **Data & backup** - Home page has reset-all controls and JSON backup/restore for switching devices
