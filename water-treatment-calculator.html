@@ -194,6 +194,32 @@ details.panel .pb ul{margin:.3em 0; padding-left:1.2em}
 }
 .cardbtns button:hover{border-color:var(--accent); color:var(--accent)}
 
+.chainrow{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 2px}
+.chainrow button{
+  background:var(--accent); color:var(--accent-ink); border:none;
+  border-radius:8px; padding:7px 12px; font-size:.8rem; font-weight:600; cursor:pointer;
+}
+.chainrow button:hover{opacity:.88}
+.star{
+  background:none; border:none; cursor:pointer; font-size:1.05rem; line-height:1;
+  color:var(--grid); padding:2px 4px;
+}
+.star.on{color:var(--warn)}
+.star:hover{color:var(--warn)}
+.modctl{display:flex; gap:8px; margin:0 0 10px}
+.modctl button{
+  background:var(--surface); border:1px solid var(--border); color:var(--ink2);
+  border-radius:8px; padding:5px 12px; font-size:.78rem; cursor:pointer;
+}
+.modctl button:hover{border-color:var(--accent); color:var(--accent)}
+.chiprow{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+.chip{
+  background:var(--chip); border:1px solid var(--border); color:var(--ink);
+  border-radius:16px; padding:6px 12px; font-size:.8rem; cursor:pointer; font-weight:600;
+}
+.chip:hover{border-color:var(--accent); color:var(--accent)}
+.chip.danger:hover{border-color:var(--crit); color:var(--crit)}
+
 /* ---------- charts ---------- */
 .chartwrap{position:relative; margin:12px 0 4px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 8px 4px}
 .chartwrap .ctitle{font-size:.8rem; font-weight:700; color:var(--ink2); padding:0 6px 4px}
@@ -255,7 +281,7 @@ footer.app{
 footer.app .legal{max-width:860px; margin:0 auto 8px; text-align:left}
 
 @media print{
-  header.app .hbtn, header.app #searchwrap, nav#nav, .cardbtns, .wa-chip{display:none !important}
+  header.app .hbtn, header.app #searchwrap, nav#nav, .cardbtns, .wa-chip, .chainrow, .star, .modctl{display:none !important}
   body{background:#fff; color:#000}
   details.calc{break-inside:avoid; border:1px solid #999}
   section[data-page]{display:none} section[data-page].active{display:block}
@@ -750,6 +776,7 @@ compute(v){
   else if((v.fe||0)>0.3) flags.push(F("amber","Iron above 0.3 ppm — consider a periodic resin cleaner program."));
   if((v.mn||0)>0.05) flags.push(F("amber","Manganese above 0.05 ppm fouls resin — pretreatment recommended."));
   return {out, flags, work,
+    chain:[{label:"Size the softener with this → PT-04", to:"PT-04", set:{h:comp}}],
     verdict:{level:(v.fe||0)>1?"red":((v.fe||0)>0.3||(v.mn||0)>0.05?"amber":"ok"),
       msg:`Design the softener for ${fmt(comp,0)} ppm as CaCO₃ (${fmt(comp/K.GPG,1)} gpg) compensated hardness.`}};
 },
@@ -823,6 +850,8 @@ compute(v){
     out.push(O("Annual salt cost", saltYr*v.saltcost, "$/yr", 0));
   }
   return {out, flags, work,
+    chain:[{label:"Brine system → PT-06", to:"PT-06", set:{salt:saltRegen, resin:vessel, thru:thru}},
+      {label:"Vessel geometry → PT-05", to:"PT-05", set:{resin:vessel, q:v.qp}}],
     verdict:{level:daysBet<1||(ok(svc)&&svc>10)?"red":"ok",
       msg:`${vessel} ft³ vessel · regenerates every ${fmt(daysBet,1)} days · ${fmt(saltRegen,0)} lb salt per regen.`},
     charts:[
@@ -1512,6 +1541,7 @@ compute(v){
       O("Blowdown at max cycles", 100/(bind.coc-1), "% of steam", 1)
     ],
     work: rows.map(r=>`Max COC (${r.p}) = ${fmt(r.lim,0)} ÷ ${fmt(r.fw,1)} = ${fmt(r.coc,1)}`),
+    chain:[{label:"Dollarize this COC → BL-05", to:"BL-05", set:{c2:bind.coc}}],
     flags, tables:[tbl],
     verdict:{level:"info", msg:`You are limited by ${bind.p.toLowerCase()} at ${fmt(bind.coc,1)} cycles. Removing 90% of it (e.g. dealkalization, better pretreatment) would raise the ceiling to ${fmt(bindFix.newCoc,1)} cycles — that's the pretreatment sales pitch. Feed the two COC numbers into BL-05 for dollars.`},
     charts:[{kind:"bar", title:"Maximum cycles by constraint (binding = first bar)", ylab:"Max COC",
@@ -2100,6 +2130,8 @@ compute(v){
     return [c,(E+D+B)*dayF];
   });
   return {out, flags,
+    chain:[{label:"Holding time → CT-11", to:"CT-11", set:{bdgpm:a.B+a.D, q:v.q}},
+      {label:"Biocide timing → CT-13", to:"CT-13", set:{bdgpm:a.B+a.D, coc:v.coc}}],
     work:[
       `E = ${fmt(v.q,0)} × ${fmt(v.range,1)} × ${S.evapK} = ${fmt(a.E,1)} gpm  (alt constant ${S.evapKalt}: ${fmt(b.E,1)})`,
       `D = ${fmt(v.q,0)} × ${fmt(v.drift,3)}% = ${fmt(a.D,2)} gpm`,
@@ -2330,6 +2362,7 @@ compute(v){
     tables:[{head:["Constraint","Max COC","Basis"],
       rows: rows.map(r=>[r.p, fmt(r.coc,1), r.note]), hl:0}],
     work: rows.map(r=>`${r.p}: max COC = ${fmt(r.coc,2)}`),
+    chain:[{label:"Water balance at this COC → CT-03", to:"CT-03", set:{coc:bind.coc}}],
     flags,
     verdict:{level:bind.metal||(ok(v.cur)&&v.cur>bind.coc)?"red":"info",
       msg:`Maximum safe cycles ≈ ${fmt(bind.coc,1)}, limited by ${bind.p}.`+(ok(v.cur)?` Currently at ${fmt(v.cur,1)}.`:"")+" Feed this into CT-03 to quantify the water savings."},
@@ -2372,7 +2405,9 @@ compute(v){
     if(hl<4) flags.push(F("amber","Half-life under 4 hr — slug dosing will be ineffective; use continuous feed."));
     if(hl>72) flags.push(F("amber","Half-life over 72 hr — watch for chemical accumulation and degradation byproducts; consider reduced feed rates."));
   }
-  return {out, work, flags};
+  const chain=[{label:"Non-ox biocide dose → CT-13", to:"CT-13", set:{vol:vol, bdgpm:v.bdgpm}},
+    {label:"Oxidizing shock dose → CT-16", to:"CT-16", set:{vol:vol, bdgpm:v.bdgpm}}];
+  return {out, work, flags, chain};
 }});
 
 CALCS.push({
@@ -2418,68 +2453,158 @@ compute(v){
 }});
 
 CALCS.push({
-id:"CT-13", mod:"ct", title:"Biocide Dosing (Slug & Oxidizing)",
-purpose:"Slug dose to hit a target, how long it stays above MIC, and the blowdown lockout to hold it there.",
+id:"CT-13", mod:"ct", title:"Non-Oxidizing Biocide: Slug Dose & Re-Dose Timing",
+purpose:"Slug quantity, DAYS to the next dose from the COC quarter-life formula, and how long the slug stays above MIC.",
 inputs:[
-  {k:"mode", l:"Biocide type", t:"sel", d:"nonox", opts:[["nonox","Non-oxidizing slug"],["ox","Oxidizing (halogen) residual"]]},
-  {k:"vol", l:"System volume", u:"gal", d:"", h:[100,1e6], help:"From CT-11"},
-  {k:"target", l:"Target concentration", u:"ppm product", d:"", h:[1,1000]},
+  {k:"vol", l:"System volume", u:"gal", d:"", h:[100,1e6], help:"From CT-11 — or send it over with the button there"},
+  {k:"target", l:"Target slug concentration", u:"ppm product", d:"", h:[1,1000], help:"From the product data sheet"},
   {k:"dens", l:"Product density", u:"lb/gal", d:9.0, h:[8,12]},
-  {k:"mic", l:"Minimum inhibitory conc. (MIC)", u:"ppm", d:"", h:[0.5,500], help:"From product data sheet"},
-  {k:"bdgpm", l:"Blowdown + drift rate", u:"gpm", d:"", h:[0.05,5000]},
-  {k:"coc", l:"COC (house quarter-life formula)", u:"", d:"", h:[2.05,50], help:"Used in the house estimate ln(¼)/(1−1/(COC−1))"},
-  {k:"demand", l:"Halogen demand + residual", u:"ppm", d:"", h:[0.1,20], sep:"Oxidizing mode", help:"System demand + target free residual"},
-  {k:"mk", l:"Makeup", u:"gal/day", d:"", h:[10,1e7]}
+  {k:"coc", l:"Cycles of concentration", u:"", d:"", h:[1.2,50], help:"Drives the quarter-life re-dose estimate"},
+  {k:"bdgpm", l:"Blowdown + drift rate (optional)", u:"gpm", d:"", h:[0.05,5000], help:"Enables the dilution-model cross-check and decay curve"},
+  {k:"mic", l:"Minimum inhibitory conc. (optional)", u:"ppm", d:"", h:[0.5,500], help:"From product data sheet"},
+  {k:"cost", l:"Product cost (optional)", u:"$/gal", d:"", h:[0,300]}
 ],
 compute(v){
-  if(v.mode==="ox"){
-    if(!ok(v.demand)||!ok(v.mk)) return {flags:[F("info","Oxidizing mode: enter halogen demand and makeup gal/day.")]};
-    const lb=lbDay(v.demand,v.mk);
-    return {
-      out:[O("Halogen feed (as Cl₂ equivalent)", lb, "lb/day", 2, null, true),
-        O("As 12.5% bleach", lb/ (9.8*0.125), "gal/day", 2)],
-      work:[`lb/day = ${fmt(v.demand,1)} ppm × ${fmt(v.mk,0)} gal/day × 8.34 ÷ 10⁶ = ${fmt(lb,2)}`],
-      flags:[
-        F("info","Target free residual: 0.2–0.5 ppm continuous, or ~1.0 ppm held 2–4 hr intermittently."),
-        F("amber","Sustained free chlorine above 1.0 ppm degrades tolyltriazole and organic inhibitors and attacks wood/fill — consider stabilized halogen."),
-        F("info","Legionella: reference the site's water management plan (ASHRAE 188). A biocide calculation is not a control program.")
-      ]};
-  }
   if(!ok(v.vol)||!ok(v.target)) return {};
   const gal = v.vol*v.target*K.LB_GAL/1e6/v.dens;
   const out=[O("Slug dose", gal, "gal product", 2, `${fmt(gal*3785,0)} mL`, true)];
   const work=[`Slug = ${fmt(v.vol,0)} gal × ${fmt(v.target,0)} ppm × 8.34 ÷ 10⁶ ÷ ${fmt(v.dens,1)} = ${fmt(gal,2)} gal`];
   const flags=[];
+  let houseDays=NaN;
+  if(ok(v.coc)){
+    if(v.coc>2){
+      houseDays = Math.abs(Math.log(0.25)/(1-1/(v.coc-1)));
+      out.push(O("Days to next dose (COC quarter-life)", houseDays, "days", 1, "house formula — re-dose when the residual falls to ~25%", true));
+      work.push(`Days to next dose = |ln(¼) ÷ (1 − 1/(COC−1))| = |−1.386 ÷ ${fmt(1-1/(v.coc-1),3)}| = ${fmt(houseDays,2)} days`);
+      flags.push(F("info",`Re-dose roughly every ${fmt(houseDays,1)} day(s) at ${fmt(v.coc,1)} cycles. Lower cycles = more blowdown = the slug washes out sooner.`));
+    } else {
+      flags.push(F("amber","The quarter-life formula needs COC > 2 (the denominator 1 − 1/(COC−1) goes to zero at COC 2). At very low cycles, size the dose by the dilution model instead."));
+    }
+  } else {
+    flags.push(F("info","Enter COC to get the days-to-next-dose estimate."));
+  }
   let chart=null;
   if(ok(v.bdgpm)&&v.bdgpm>0){
     const tauHr = v.vol/(v.bdgpm*60);
-    const tQuarter = tauHr*Math.log(4);
-    out.push(O("Quarter-life (dilution model)", tQuarter, "hr", 1, "residual falls to 25% of the slug — the usual re-dose point", true));
-    work.push(`Quarter-life = HTI × ln 4 = ${fmt(tauHr,1)} hr × 1.386 = ${fmt(tQuarter,1)} hr   (HTI = V ÷ (B+D))`);
-    if(ok(v.coc)&&v.coc>2){
-      const qf = Math.abs(Math.log(0.25)/(1-1/(v.coc-1)));
-      out.push(O("Quarter-life (house formula)", qf*tauHr, "hr", 1, `factor ${fmt(qf,2)} × holding time index`));
-      work.push(`House estimate: |ln(¼) ÷ (1 − 1/(COC−1))| = |−1.386 ÷ ${fmt(1-1/(v.coc-1),3)}| = ${fmt(qf,2)} × HTI ${fmt(tauHr,1)} hr = ${fmt(qf*tauHr,1)} hr`);
-    } else if(ok(v.coc)) {
-      work.push("House quarter-life formula needs COC > 2 (denominator 1 − 1/(COC−1) must stay positive).");
-    }
-    flags.push(F("info",`Re-dose on the quarter-life: dose again when the residual falls to ~25% of the slug (≈ every ${fmt(tQuarter,1)} hr at these losses), or sooner if the MIC demands it.`));
+    const tQ = tauHr*Math.log(4);
+    out.push(O("Quarter-life — dilution cross-check", tQ/24, "days", 1, `HTI × ln 4 = ${fmt(tQ,1)} hr, from measured blowdown`));
+    work.push(`Dilution model: HTI = ${fmt(v.vol,0)} ÷ (${fmt(v.bdgpm,1)} gpm × 60) = ${fmt(tauHr,1)} hr → quarter-life = 1.386 × HTI = ${fmt(tQ,1)} hr = ${fmt(tQ/24,1)} days`);
+    if(ok(houseDays) && (houseDays*24>tQ*2 || houseDays*24<tQ/2))
+      flags.push(F("amber","House estimate and dilution model differ by more than 2× — the dilution model reflects the blowdown you actually measured; the house formula is the program default. Trust the measured one, but check the blowdown number first."));
     if(ok(v.mic)&&v.mic<v.target){
       const tMIC = tauHr*Math.log(v.target/v.mic);
       out.push(O("Time above MIC (dilution only)", tMIC, "hr", 1, "ignores degradation & consumption — real time is shorter"),
         O("Recommended blowdown lockout", Math.min(Math.max(tMIC,2),6), "hr", 1, "hold the slug above MIC (typ. 2–6 hr)"));
-      work.push(`t_MIC = (V ÷ (B+D)) × ln(C₀/MIC) = ${fmt(tauHr,1)} hr × ln(${fmt(v.target,0)}/${fmt(v.mic,0)}) = ${fmt(tMIC,1)} hr`);
+      work.push(`t_MIC = HTI × ln(C₀/MIC) = ${fmt(tauHr,1)} × ln(${fmt(v.target,0)}/${fmt(v.mic,0)}) = ${fmt(tMIC,1)} hr`);
     }
-    const pts=rng(0,tauHr*3,40).map(t=>[t, v.target*Math.exp(-t/tauHr)]);
+    const spanHr = Math.max(tauHr*3, ok(houseDays)?houseDays*30:0);
+    const markers=[{x:tQ, y:v.target/4, label:`dilution ¼-life ${fmt(tQ,0)} hr`}];
+    if(ok(houseDays)&&houseDays*24<spanHr) markers.push({x:houseDays*24, y:v.target*Math.exp(-houseDays*24/tauHr), label:`house re-dose ${fmt(houseDays,1)} d`});
     chart={kind:"line", title:"Slug decay by blowdown dilution", xlab:"Hours after slug", ylab:"Concentration (ppm)",
-      series:[{name:"C(t)", pts}],
-      markers:[{x:tQuarter, y:v.target/4, label:`quarter-life ${fmt(tQuarter,1)} hr`}],
+      series:[{name:"C(t)", pts:rng(0,spanHr,48).map(t=>[t, v.target*Math.exp(-t/tauHr)])}],
+      markers,
       hlines: ok(v.mic)?[{y:v.mic, label:`MIC ${fmt(v.mic,0)} ppm`}]:[]};
+  }
+  if(ok(v.cost)&&v.cost>0&&ok(houseDays)&&houseDays>0){
+    out.push(O("Biocide cost", gal*v.cost*365/houseDays, "$/yr", 0, `$${fmt(gal*v.cost,2)} per slug × ${fmt(365/houseDays,0)} slugs/yr`));
   }
   flags.push(F("info","Alternate non-oxidizing biocides to prevent resistance. Never slug two incompatible biocides simultaneously."));
   flags.push(F("info","Legionella: reference the site's water management plan (ASHRAE 188). This calculation is not a control program."));
-  return {out, work, flags, charts: chart?[chart]:[]};
-}});
+  return {out, work, flags, charts: chart?[chart]:[],
+    verdict: ok(houseDays)?{level:"ok", msg:`Slug ${fmt(gal,2)} gal, re-dose every ≈ ${fmt(houseDays,1)} days (COC quarter-life at ${fmt(v.coc,1)} cycles).`}:undefined};
+},
+notes:"House quarter-life formula: days = |ln(¼) ÷ (1 − 1/(COC−1))|. The optional dilution model uses your measured blowdown as a cross-check."});
+
+/* indicative ORP vs free halogen (Ag/AgCl reference, pH ~7.5–8.5 cooling water) */
+const ORP_RESID=[[0.05,480],[0.1,520],[0.2,555],[0.35,580],[0.5,600],[0.75,622],[1.0,640],[1.5,665],[2.0,685]];
+
+CALCS.push({
+id:"CT-16", mod:"ct", title:"Oxidizing Biocide Feed (Continuous · Makeup Slug · ORP)",
+purpose:"Halogen feed the three ways reps actually run it — continuous residual, makeup-based shock, or ORP control — with chemical use and pump numbers for each.",
+inputs:[
+  {k:"method", l:"Feed method", t:"sel", d:"cont", opts:[["cont","Continuous residual"],["slug","Makeup-based / timed shock"],["orp","ORP-controlled"]]},
+  {k:"avail", l:"Available halogen in product", u:"lb Cl₂/gal", d:1.04, h:[0.05,3], help:"12.5% bleach ≈ 1.04 · 10% ≈ 0.83 · gas = 100%"},
+  {k:"demand", l:"System halogen demand", u:"ppm", d:0.5, h:[0,15], help:"Organic load consumes oxidant before a residual forms — from a demand test"},
+  {k:"cost", l:"Product cost (optional)", u:"$/gal", d:"", h:[0,50]},
+  {k:"resid", l:"Target free residual", u:"ppm", d:0.35, h:[0.05,3], sep:"Continuous & ORP", help:"0.2–0.5 ppm free continuous is the classic band"},
+  {k:"mk", l:"Makeup", u:"gal/day", d:"", h:[10,1e7]},
+  {k:"vol", l:"System volume", u:"gal", d:"", h:[100,1e6], sep:"Shock mode", help:"From CT-11"},
+  {k:"shock", l:"Shock target free residual", u:"ppm", d:1.0, h:[0.2,10], help:"~1 ppm held 2–4 hr is the classic intermittent program"},
+  {k:"perweek", l:"Shocks per week", u:"", d:3, h:[1,21]},
+  {k:"bdgpm", l:"Blowdown + drift rate", u:"gpm", d:"", h:[0.05,5000], help:"For how long the shock holds"},
+  {k:"orp", l:"ORP setpoint", u:"mV", d:600, h:[300,800], sep:"ORP mode", help:"vs Ag/AgCl reference"},
+  {k:"ph", l:"Tower pH", u:"", d:"", h:[6,9.8], wa:"ph"},
+  {k:"pumpgph", l:"Feed pump capacity", u:"gph", d:"", h:[0.05,50], help:"For the duty-cycle check"}
+],
+compute(v){
+  const flags=[], work=[], out=[];
+  const charts=[];
+  const galFor=(lbCl2)=> lbCl2/v.avail;
+  if(v.method==="cont"||v.method==="orp"){
+    if(!ok(v.mk)) return {flags:[F("info","Enter makeup gal/day.")]};
+    const ppm=(v.demand||0)+(v.resid||0);
+    const lb=lbDay(ppm,v.mk);
+    const gpd=galFor(lb);
+    out.push(O("Halogen feed (as Cl₂)", lb, "lb/day", 2, `${fmt(ppm,2)} ppm (demand ${fmt(v.demand||0,1)} + residual ${fmt(v.resid||0,2)}) on makeup`, false),
+      O("Product feed", gpd, "gal/day", 2, null, true),
+      O("Pump rate", gpd*3785/1440, "mL/min", 2));
+    work.push(`Feed = (demand ${fmt(v.demand||0,1)} + residual ${fmt(v.resid||0,2)}) ppm × ${fmt(v.mk,0)} gal/day × 8.34 ÷ 10⁶ = ${fmt(lb,2)} lb Cl₂/day`,
+      `Product = ${fmt(lb,2)} ÷ ${fmt(v.avail,2)} lb Cl₂/gal = ${fmt(gpd,2)} gal/day`);
+    if(ok(v.cost)&&v.cost>0) out.push(O("Chemical cost", gpd*v.cost, "$/day", 2, `$${fmt(gpd*v.cost*365,0)}/yr`));
+    if((v.resid||0)>1.0) flags.push(F("amber","Sustained free halogen above 1.0 ppm degrades tolyltriazole and organic inhibitors and attacks wood/fill — consider stabilized halogen or drop the setpoint."));
+    if(v.method==="orp"){
+      const impliedResid = (()=>{ for(const [r,mv] of ORP_RESID) if(mv>=v.orp) return r; return 2.5; })();
+      out.push(O("Implied free residual at setpoint", impliedResid, "ppm", 2, "indicative — verify against DPD tests"));
+      if(ok(v.pumpgph)&&v.pumpgph>0){
+        const duty=gpd/(v.pumpgph*24)*100;
+        out.push(O("Expected pump duty cycle", duty, "%", 0, "feed time the controller should command"));
+        work.push(`Duty = ${fmt(gpd,2)} gal/day ÷ (${fmt(v.pumpgph,2)} gph × 24) = ${fmt(duty,0)}%`);
+        if(duty>70) flags.push(F("red","Pump would run more than 70% of the time — undersized. It cannot recover from demand spikes; upsize the pump or raise the product strength."));
+        else if(duty<5) flags.push(F("amber","Pump duty under 5% — oversized. Control will hunt (overshoot/starve cycles); consider a smaller pump or diluted day tank."));
+        else flags.push(F("ok","Pump sizing is in the comfortable 5–70% duty band."));
+      }
+      if(ok(v.ph)&&v.ph>8.3) flags.push(F("amber",`At pH ${fmt(v.ph,1)}, hypochlorous acid shifts to the weaker OCl⁻ form and ORP reads LOWER for the same residual (roughly 40–80 mV per pH unit). Set the setpoint against a DPD test at the tower's actual pH — don't chase pH drift with more chlorine.`));
+      flags.push(F("info","ORP housekeeping: calibrate/verify the probe monthly against DPD, clean the electrode on every visit, and log setpoint vs DPD residual — a drifting probe overfeeds silently."));
+      charts.push({kind:"line", title:"Indicative ORP vs free residual (Ag/AgCl, pH 7.5–8.5) — verify with DPD", xlab:"Free residual (ppm)", ylab:"ORP (mV)",
+        series:[{name:"Typical response", pts:ORP_RESID}],
+        hlines:[{y:v.orp, label:`setpoint ${fmt(v.orp,0)} mV`}], xd:2, yd:0});
+      return {out, work, flags, charts,
+        tables:[{title:"ORP setpoint guide (indicative, Ag/AgCl reference)", head:["ORP (mV)","Approx. free residual","Reading"],
+          rows:[["< 500","trace (< 0.1 ppm)","insufficient for microbial control"],
+            ["500–550","0.1–0.2 ppm","light control"],
+            ["550–620","0.2–0.5 ppm","classic continuous control band"],
+            ["620–660","0.5–1.0 ppm","aggressive — watch azole & yield"],
+            ["> 660","> 1.0 ppm","inhibitor degradation territory"]]}],
+        verdict:{level:"ok", msg:`ORP ${fmt(v.orp,0)} mV ≈ ${fmt(impliedResid,2)} ppm free — expect ≈ ${fmt(gpd,2)} gal/day of product at this demand.`}};
+    }
+    return {out, work, flags, charts,
+      verdict:{level:(v.resid||0)>1?"amber":"ok", msg:`Continuous: ≈ ${fmt(gpd,2)} gal/day of product to hold ${fmt(v.resid||0,2)} ppm free against ${fmt(v.demand||0,1)} ppm demand.`}};
+  }
+  /* makeup-based / timed shock */
+  if(!ok(v.vol)) return {flags:[F("info","Shock mode: enter the system volume (CT-11).")]};
+  const ppmSlug=(v.demand||0)+(v.shock||1);
+  const lbSlug=v.vol*ppmSlug*K.LB_GAL/1e6;
+  const galSlug=galFor(lbSlug);
+  out.push(O("Shock dose", galSlug, "gal product", 2, `raises the system to ${fmt(v.shock,1)} ppm free after ${fmt(v.demand||0,1)} ppm demand`, true),
+    O("Weekly product use", galSlug*(v.perweek||3), "gal/wk", 1, `${fmt(v.perweek||3,0)} shocks/week`));
+  work.push(`Shock = ${fmt(v.vol,0)} gal × ${fmt(ppmSlug,1)} ppm × 8.34 ÷ 10⁶ ÷ ${fmt(v.avail,2)} = ${fmt(galSlug,2)} gal`);
+  if(ok(v.cost)&&v.cost>0) out.push(O("Chemical cost", galSlug*(v.perweek||3)*v.cost*52, "$/yr", 0));
+  if(ok(v.bdgpm)&&v.bdgpm>0){
+    const tauHr=v.vol/(v.bdgpm*60);
+    const hold=tauHr*Math.log(2);
+    out.push(O("Residual holds above ½-shock for", hold, "hr", 1, "dilution only — demand shortens it; target 2–4 hr above ~1 ppm"));
+    work.push(`Hold ≈ HTI × ln 2 = ${fmt(tauHr,1)} × 0.693 = ${fmt(hold,1)} hr`);
+    if(hold<2) flags.push(F("amber","Shock won't hold 2 hr at these losses — lock out blowdown during the shock or raise the shock level."));
+    charts.push({kind:"line", title:"Shock decay by blowdown dilution", xlab:"Hours after shock", ylab:"Free residual (ppm)",
+      series:[{name:"Residual", pts:rng(0,tauHr*2.5,40).map(t=>[t, v.shock*Math.exp(-t/tauHr)])}],
+      hlines:[{y:v.shock/2, label:"½ shock level"}], yd:2});
+  }
+  flags.push(F("info","Classic intermittent program: ~1.0 ppm free held 2–4 hr, 2–3× per week — alternate with a non-oxidizer (CT-13) for resistant organisms."));
+  flags.push(F("info","Legionella: reference the site's water management plan (ASHRAE 188). This calculation is not a control program."));
+  return {out, work, flags, charts,
+    verdict:{level:"ok", msg:`Shock: ${fmt(galSlug,2)} gal per event, ${fmt(v.perweek||3,0)}×/week ≈ ${fmt(galSlug*(v.perweek||3),1)} gal/wk.`}};
+},
+notes:"Bleach loses strength in storage (up to 1%/week warm) — the 'available halogen' field is where to derate it. Chlorine gas and bromine chemistries: enter the equivalent lb Cl₂ per gal or per lb fed."});
 
 CALCS.push({
 id:"CT-14", mod:"ct", title:"Acid Feed for pH / Alkalinity Control",
@@ -2609,6 +2734,7 @@ compute(v){
     else flags.push(F("ok","Mass balance closes — instruments are consistent."));
   }
   return {out:out.filter(Boolean), work, flags,
+    chain:[{label:"Check concentrate scaling → RO-06", to:"RO-06", set:{rec:R*100}}],
     charts:[{kind:"line", title:"Concentration factor vs recovery", xlab:"Recovery (%)", ylab:"CF (×)",
       series:[{name:"CF = 1/(1−R)", pts:rng(30,90,40).map(r=>[r,1/(1-r/100)])}],
       markers:[{x:R*100, y:cfS, label:`${fmt(R*100,0)}% → CF ${fmt(cfS,1)}`}]}]
@@ -2682,6 +2808,7 @@ compute(v){
     if(beta>1.2) flags.push(F("red","β above 1.2 — the wall concentration is far above bulk; scaling risk is understated by bulk numbers."));
   }
   return {out, flags,
+    chain:[{label:"Specific flux with this NDP → RO-02", to:"RO-02", set:{ndp:ndp}}],
     work:[
       `C_avg = ${fmt(v.tds,0)} × ln(1/(1−${fmt(R,2)})) ÷ ${fmt(R,2)} = ${fmt(cAvg,0)} ppm`,
       `π_avg = ${fmt(cAvg,0)} × 0.01 = ${fmt(piAvg,1)} psi`,
@@ -3154,6 +3281,8 @@ compute(v){
   if(!best) return {flags:[F("info","Enter data for at least one method — tracer beats takeoff beats rule of thumb.")]};
   flags.push(F("info",`Confidence: ${conf}. Confidence propagates into every dosing calc — if this is a rule-of-thumb number, dose as a range and verify by tracer at the next service.`));
   return {out, work, flags,
+    chain:[{label:"Inhibitor dosing → CL-06", to:"CL-06", set:{vol:best.v}},
+      {label:"Leak detection → CL-07", to:"CL-07", set:{vol:best.v}}],
     verdict:{level:best.m==="tracer dilution"?"ok":"info", msg:`System volume ≈ ${fmt(best.v,0)} gal (${best.m}).`},
     tables:[{title:"Equipment volume allowances", head:["Component","Typical volume"],
       rows:[["Expansion tank","20–40% of tank volume is water"],["Air separator","5–30 gal"],["Shell & tube HX","per nameplate"],["Plate & frame HX","2–10 gal"],["Fan coil unit","0.5–2 gal each"],["Air handler coil","5–25 gal each"],["Hot water boiler","20–40 gal per 100 BHP"],["Chiller barrel","50–200 gal (nameplate)"],["Baseboard radiation","0.04 gal/ft"],["Radiant PEX 1/2\" / 5/8\"","0.016 / 0.025 gal/ft"]]}]
@@ -3662,6 +3791,31 @@ Object.assign(S, store.get("wtc_settings",{}));
 Object.assign(WA, store.get("wtc_wa",{}));
 const savedInputs = store.get("wtc_inputs",{});
 let metricOn = store.get("wtc_metric", false);
+let FAVS = store.get("wtc_favs", []);
+let RECENT = store.get("wtc_recent", []);
+function toggleFav(id){
+  FAVS = FAVS.includes(id) ? FAVS.filter(x=>x!==id) : [...FAVS, id];
+  store.set("wtc_favs", FAVS);
+}
+function pushRecent(id){
+  RECENT = [id, ...RECENT.filter(x=>x!==id)].slice(0,8);
+  store.set("wtc_recent", RECENT);
+}
+/* send an output value into another calculator's inputs */
+function sendTo(to, set){
+  const sv = savedInputs[to] || (savedInputs[to]={});
+  Object.entries(set).forEach(([k,val])=>{
+    if(typeof val!=="number" || !isFinite(val)) return;
+    const rounded = Math.abs(val)>=100 ? Math.round(val) : +val.toFixed(2);
+    sv[k]=String(rounded);
+    const inp=document.getElementById(`in-${to}-${k}`);
+    if(inp) inp.value=sv[k];
+  });
+  store.set("wtc_inputs",savedInputs);
+  const c=CALCS.find(x=>x.id===to);
+  if(c&&c._recompute) c._recompute();
+  openCalc(to);
+}
 
 /* ---------------- metric equivalents ---------------- */
 const METRIC = {
@@ -3975,6 +4129,15 @@ function renderResult(calc, res, target){
     });
     target.appendChild(fl);
   }
+  if(res.chain&&res.chain.length){
+    const cr=el("div","chainrow");
+    res.chain.forEach(ch=>{
+      const b=el("button",null,"↪ "+esc(ch.label));
+      b.addEventListener("click",()=>sendTo(ch.to, ch.set));
+      cr.appendChild(b);
+    });
+    target.appendChild(cr);
+  }
   (res.charts||[]).forEach(c=>{ try{ target.appendChild(drawChart(c)); }catch(e){} });
   if(res.work&&res.work.length){
     const w=el("details","work",`<summary>Show your work</summary><div class="wlines">${esc(res.work.join("\n"))}</div>`);
@@ -3990,8 +4153,13 @@ function buildCalcCard(calc){
   const card=el("details","calc");
   card.id=`card-${calc.id}`;
   const sum=el("summary",null,
-    `<div class="srow"><span class="cid">${esc(calc.id)}</span><span class="ct">${esc(calc.title)}</span><span class="caret">▸</span></div><div class="cp">${esc(calc.purpose)}</div>`);
+    `<div class="srow"><span class="cid">${esc(calc.id)}</span><span class="ct">${esc(calc.title)}</span><button class="star${FAVS.includes(calc.id)?" on":""}" title="Pin to Home" type="button">★</button><span class="caret">▸</span></div><div class="cp">${esc(calc.purpose)}</div>`);
   card.appendChild(sum);
+  sum.querySelector(".star").addEventListener("click",e=>{
+    e.preventDefault(); e.stopPropagation();
+    toggleFav(calc.id);
+    e.target.classList.toggle("on", FAVS.includes(calc.id));
+  });
   const body=el("div","calcbody");
   const grid=el("div","ingrid");
   const ui={};
@@ -4027,7 +4195,7 @@ function buildCalcCard(calc){
   calc._recompute=recompute;
   let deb=null;
   grid.addEventListener("input",()=>{ clearTimeout(deb); deb=setTimeout(recompute,180); });
-  card.addEventListener("toggle",()=>{ if(card.open) recompute(); });
+  card.addEventListener("toggle",()=>{ if(card.open){ recompute(); pushRecent(calc.id); } });
   copyB.addEventListener("click",()=>{
     let txt=`${calc.id} — ${calc.title}\n`;
     calc.inputs.forEach(def=>{
@@ -4068,6 +4236,7 @@ function gotoPage(key){
   document.querySelectorAll("nav#nav button").forEach(b=>b.classList.toggle("active",b.dataset.p===key));
   document.querySelectorAll("section[data-page]").forEach(s=>s.classList.toggle("active",s.dataset.page===key));
   store.set("wtc_page",key);
+  if(key==="home" && window.renderHomeDynamic) window.renderHomeDynamic();
   window.scrollTo({top:0});
 }
 
@@ -4088,6 +4257,12 @@ function buildNav(){
 function buildModulePages(){
   ["pt","bl","ct","ro","cl","cu"].forEach(mod=>{
     const wrap=$(`#cards-${mod}`);
+    const ctl=el("div","modctl");
+    const ex=el("button",null,"⊞ Expand all"), co=el("button",null,"⊟ Collapse all");
+    ex.addEventListener("click",()=>wrap.querySelectorAll("details.calc").forEach(d=>d.open=true));
+    co.addEventListener("click",()=>wrap.querySelectorAll("details.calc").forEach(d=>d.open=false));
+    ctl.appendChild(ex); ctl.appendChild(co);
+    wrap.parentElement.insertBefore(ctl, wrap);
     CALCS.filter(c=>c.mod===mod).forEach((c,i)=>{
       const card=buildCalcCard(c);
       if(i===0) card.open=true;
@@ -4109,6 +4284,81 @@ function buildHome(){
     st.addEventListener("click",()=>gotoPage(m));
     stats.appendChild(st);
   });
+  /* pinned + recent panel */
+  const dyn=el("div","homecard"); dyn.id="homedyn";
+  const grid=document.querySelector(".homegrid");
+  grid.insertBefore(dyn, grid.firstChild);
+  window.renderHomeDynamic=()=>{
+    let h="<h3>★ Your calculators</h3>";
+    if(FAVS.length){
+      h+="<div class='chiprow'>"+FAVS.map(id=>{
+        const c=CALCS.find(x=>x.id===id); if(!c) return "";
+        return `<button class="chip" data-open="${id}" title="${esc(c.title)}">★ ${id}</button>`;
+      }).join("")+"</div>";
+    } else h+="<p>Pin any calculator with the ★ on its header and it shows up here.</p>";
+    if(RECENT.length){
+      h+="<h3 style='margin-top:10px'>🕒 Recently used</h3><div class='chiprow'>"+RECENT.map(id=>{
+        const c=CALCS.find(x=>x.id===id); if(!c) return "";
+        return `<button class="chip" data-open="${id}" title="${esc(c.title)}">${id}</button>`;
+      }).join("")+"</div>";
+    }
+    dyn.innerHTML=h;
+    dyn.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openCalc(b.dataset.open)));
+  };
+  renderHomeDynamic();
+  /* data & backup card */
+  const BACKUP_KEYS=["wtc_settings","wtc_wa","wtc_inputs","wtc_favs","wtc_recent","wtc_metric","wtc_theme","wtc_page"];
+  const dataCard=el("div","homecard");
+  dataCard.innerHTML="<h3>🧹 Data & backup</h3><p>Everything lives in this browser only. Reset what you need, or back it all up to a file (e.g. before switching phones).</p>";
+  const btnRow=el("div","chiprow");
+  const mkBtn=(label, fn, danger)=>{
+    const b=el("button","chip"+(danger?" danger":""), label);
+    b.addEventListener("click", fn);
+    btnRow.appendChild(b);
+  };
+  mkBtn("↺ Reset all calculator inputs", ()=>{
+    if(!confirm("Clear every calculator's saved inputs? Water analysis and settings are kept.")) return;
+    localStorage.removeItem("wtc_inputs"); location.reload();
+  }, true);
+  mkBtn("Clear water analysis", ()=>{
+    if(!confirm("Clear the shared water analysis?")) return;
+    localStorage.removeItem("wtc_wa"); location.reload();
+  }, true);
+  mkBtn("Reset settings to defaults", ()=>{
+    if(!confirm("Reset all Settings (house constants, limits, costs) to defaults?")) return;
+    localStorage.removeItem("wtc_settings"); location.reload();
+  }, true);
+  mkBtn("⚠ Erase everything", ()=>{
+    if(!confirm("Erase ALL saved data — inputs, water analysis, settings, pins? This cannot be undone.")) return;
+    BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); location.reload();
+  }, true);
+  mkBtn("⬇ Export backup", ()=>{
+    const data={};
+    BACKUP_KEYS.forEach(k=>{ const val=localStorage.getItem(k); if(val!==null) data[k]=JSON.parse(val); });
+    const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="water-calc-backup-"+new Date().toISOString().slice(0,10)+".json";
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+  const fileIn=document.createElement("input");
+  fileIn.type="file"; fileIn.accept=".json,application/json"; fileIn.style.display="none";
+  fileIn.addEventListener("change",()=>{
+    const f=fileIn.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{
+        const data=JSON.parse(rd.result);
+        if(!confirm("Restore this backup? It overwrites current data.")) return;
+        BACKUP_KEYS.forEach(k=>{ if(k in data) localStorage.setItem(k, JSON.stringify(data[k])); });
+        location.reload();
+      }catch(e){ alert("That file doesn't look like a valid backup."); }
+    };
+    rd.readAsText(f);
+  });
+  mkBtn("⬆ Restore backup", ()=>fileIn.click());
+  dataCard.appendChild(btnRow); dataCard.appendChild(fileIn);
+  grid.appendChild(dataCard);
   const links=[["BL-05","Blowdown savings — the money calc"],["CT-03","Tower water balance"],["CT-10","LSI / RSI / PSI dashboard"],["CU-01","Chemical feed & drawdown"],["PT-04","Softener sizing"],["RO-04","RO normalization"],["BL-04","Max boiler cycles"],["CL-07","Closed-loop leak detection"]];
   const ul=$("#quicklinks");
   links.forEach(([id,txt])=>{
@@ -4349,6 +4599,11 @@ function buildToggles(){
 /* ---------------- boot ---------------- */
 window.addEventListener("beforeprint",()=>{
   document.querySelectorAll("section.active details").forEach(d=>d.open=true);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="/" && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){
+    e.preventDefault(); $("#searchbox").focus();
+  }
 });
 document.addEventListener("DOMContentLoaded",()=>{
   buildNav();
