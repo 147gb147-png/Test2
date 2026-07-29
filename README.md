@@ -17,11 +17,11 @@ A single-file, fully offline calculator suite for industrial water treatment fie
 | **Closed Loops** (CL-01…09) | System volume (tracer/takeoff/rules), heat load & low-ΔT diagnostic, glycol freeze/burst/derate/blending, inhibitor dosing, leak detection from inhibitor decay, loop water quality assessment, flush & passivation |
 | **Utilities** (CU-01…06) | Universal chemical feed + drawdown stopwatch, dilution, ROI builder, titration helper, ion ⇄ CaCO₃ converter, conductivity ⇄ TDS |
 
-Plus a browsable **Reference** section (ASME/ABMA limits, steam tables, glycol tables, pipe volumes, resin capacities, chemical densities, and more) and a **Settings** page where every house constant and limit is editable.
+Plus a browsable **Reference** section (ASME/ABMA limits, steam tables, glycol tables, pipe volumes, resin capacities, chemical densities, and more) and a **Settings** page where every house constant and limit is editable - utility costs, softener practice, cycle limits, ORP control band, biocide re-dose threshold, RO cleaning triggers, coupon geometry and more.
 
 ## Key features
 
-- **Shared water analysis** - organized around the tests reps actually run (hardness, iron, free/total chlorine, phosphate, copper, sulfite, chloride, nitrate, molybdate, condensate pH…); any input with a "⇩ analysis" chip pulls from it
+- **Per-system water analyses** - separate profiles for makeup/pretreatment, boiler & feedwater, tower water, RO feed, and closed loop, each with the fields that matter for that water; every "⇩ analysis" chip pulls from the matching water automatically (tower indices read tower water, softener sizing reads makeup)
 - **Biocide quarter-life dosing** - CT-13 (non-oxidizing) gives days-to-next-dose directly from ln(1/4) / ln(1 - 1/(COC-1)); CT-16 (oxidizing) covers continuous, makeup-shock, and ORP-controlled feed
 - **Send-to chaining** - one tap carries a result into the next calculator (PT-03→PT-04, BL-04→BL-05, CT-11→CT-13/16, CL-01→CL-06/07, …)
 - **Pin & recents** - star any calculator to pin it to Home; recently-used list auto-populates

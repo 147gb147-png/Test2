@@ -316,7 +316,7 @@ footer.app .legal{max-width:860px; margin:0 auto 8px; text-align:left}
     <div class="homecard">
       <h3>⚡ Quick start</h3>
       <ul>
-        <li><b>Enter the water analysis once</b> on the <a href="#" data-goto="analysis">Water Analysis</a> page. Any input with a <b>“from analysis”</b> chip can pull from it with one tap.</li>
+        <li><b>Enter each water analysis once</b> - makeup, boiler, tower, RO, loop - on the <a href="#" data-goto="analysis">Water Analysis</a> page. Any input with a <b>“⇩ analysis”</b> chip pulls from the matching water with one tap.</li>
         <li>Every value you type is <b>saved locally</b> (this browser only) and restored next visit.</li>
         <li>Results update live as you type. Amber input = unusual, confirm it. Red input = outside physical range, blocked.</li>
         <li>Use the search box (top right) to jump to any calculator by name or ID (e.g. <code>BL-05</code>, “LSI”, “glycol”).</li>
@@ -362,16 +362,12 @@ footer.app .legal{max-width:860px; margin:0 auto 8px; text-align:left}
 
 <section data-page="analysis">
   <div class="pagehead">
-    <h1>Shared Water Analysis</h1>
-    <p>Enter a water analysis <b>once</b>. Every calculator input showing a <b>“⇩ analysis”</b> chip can pull
-    the matching value from here, so you never retype a lab report. Values persist in this browser.</p>
+    <h1>Water Analyses - by System</h1>
+    <p>One analysis per water type: makeup, boiler, tower, RO feed, closed loop. Enter what you tested and
+    every calculator input showing a <b>“⇩ analysis”</b> chip pulls from the matching water automatically -
+    tower calculators read tower water, softener sizing reads makeup, and so on. Values persist in this browser.</p>
   </div>
-  <div class="setgroup">
-    <div class="wagrid" id="wagrid"></div>
-    <div class="cardbtns">
-      <button id="waClear">Clear analysis</button>
-    </div>
-  </div>
+  <div id="waprofiles"></div>
   <div class="setgroup" id="waderived"></div>
 </section>
 
@@ -482,6 +478,17 @@ const SETTINGS_DEF = [
   {g:"Cooling tower cycle limits - metallurgy", k:"cl316", l:"Chloride limit, 316 SS wetted, ppm", d:300},
   {g:"Closed loops", k:"nitriteMin", l:"Nitrite pitting threshold, ppm as NO₂", d:500, help:"Below this, partial films pit - used by CL-06 / CL-08"},
   {g:"Closed loops", k:"loopPHmin", l:"Minimum loop pH for nitrite programs", d:8.5},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"orpMin", l:"ORP control band - low, mV", d:500, help:"vs Ag/AgCl; setpoints outside the band get flagged"},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"orpMax", l:"ORP control band - high, mV", d:660},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"residMin", l:"Continuous free residual - low, ppm", d:0.2},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"residMax", l:"Continuous free residual - high, ppm", d:0.5},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"dutyMin", l:"Feed pump duty band - low, %", d:5, help:"Below this the pump is oversized and control hunts"},
+  {g:"Oxidizing biocide & ORP (CT-16)", k:"dutyMax", l:"Feed pump duty band - high, %", d:70, help:"Above this the pump can't recover from demand spikes"},
+  {g:"Non-ox biocide re-dose (CT-13)", k:"redoseFrac", l:"Re-dose when residual falls to, %", d:25, help:"25% = the quarter-life convention; some programs re-dose at 50%"},
+  {g:"RO cleaning triggers (RO-04/05)", k:"roFlowTrig", l:"Normalized flow decline trigger, %", d:10},
+  {g:"RO cleaning triggers (RO-04/05)", k:"roDpTrig", l:"Normalized ΔP increase trigger, %", d:15},
+  {g:"RO cleaning triggers (RO-04/05)", k:"roSpTrig", l:"Salt passage increase trigger, %", d:10},
+  {g:"Corrosion coupons (CT-15)", k:"couponArea", l:"Default coupon surface area, in²", d:4.4, help:"Use your lab's stated value"},
   {g:"Reverse osmosis", k:"tcfCoeff", l:"TCF membrane coefficient", d:2640, help:"ASTM value for most TFC polyamide membranes; some publish 2700/3020"},
   {g:"Reverse osmosis", k:"gypsumASpct", l:"Gypsum saturation allowed with antiscalant, % of Ksp", d:250, help:"Typical antiscalants permit 150-400%"},
   {g:"Reverse osmosis", k:"lsiAS", l:"Concentrate LSI allowed with antiscalant", d:1.8, help:"Per antiscalant product rating"},
@@ -640,38 +647,33 @@ function band(x, rows, last){
 }
 
 /* ---------------- shared water analysis ---------------- */
-const WA_FIELDS = [
-  /* the tests reps actually run in the field, first */
-  {g:"Common field tests", k:"ph", l:"pH", u:""},
-  {k:"cond", l:"Conductivity", u:"µS/cm"},
-  {k:"temp", l:"Temperature", u:"°F"},
-  {k:"th", l:"Total hardness", u:"ppm CaCO₃"},
-  {k:"cah", l:"Calcium hardness", u:"ppm CaCO₃"},
-  {k:"fe", l:"Total iron", u:"ppm"},
-  {k:"cl2", l:"Free chlorine", u:"ppm"},
-  {k:"tcl2", l:"Total chlorine", u:"ppm"},
-  {k:"po4", l:"Phosphate", u:"ppm PO₄"},
-  {k:"cu", l:"Copper", u:"ppm"},
-  {k:"so3", l:"Sulfite", u:"ppm SO₃"},
-  {k:"cl", l:"Chloride", u:"ppm"},
-  {k:"no3", l:"Nitrate", u:"ppm"},
-  {k:"moly", l:"Molybdate", u:"ppm MoO₄"},
-  {k:"condph", l:"Condensate pH", u:""},
-  /* lab / extended values */
-  {g:"Extended / lab analysis", k:"tds", l:"TDS", u:"ppm"},
-  {k:"mgh", l:"Magnesium hardness", u:"ppm CaCO₃"},
-  {k:"malk", l:"M-alkalinity", u:"ppm CaCO₃"},
-  {k:"palk", l:"P-alkalinity", u:"ppm CaCO₃"},
-  {k:"so4", l:"Sulfate", u:"ppm"},
-  {k:"sio2", l:"Silica (rarely field-tested)", u:"ppm SiO₂"},
-  {k:"mn", l:"Manganese", u:"ppm"},
-  {k:"na", l:"Sodium", u:"ppm"},
-  {k:"ba", l:"Barium", u:"ppb"},
-  {k:"sr", l:"Strontium", u:"ppm"},
-  {k:"ff", l:"Fluoride", u:"ppm"},
-  {k:"sdi", l:"SDI₁₅", u:""}
+const WA_LIB = {
+  ph:{l:"pH",u:""}, cond:{l:"Conductivity",u:"µS/cm"}, temp:{l:"Temperature",u:"°F"},
+  th:{l:"Total hardness",u:"ppm CaCO₃"}, cah:{l:"Calcium hardness",u:"ppm CaCO₃"}, mgh:{l:"Magnesium hardness",u:"ppm CaCO₃"},
+  fe:{l:"Total iron",u:"ppm"}, mn:{l:"Manganese",u:"ppm"}, cu:{l:"Copper",u:"ppm"},
+  cl2:{l:"Free chlorine",u:"ppm"}, tcl2:{l:"Total chlorine",u:"ppm"}, po4:{l:"Phosphate",u:"ppm PO₄"},
+  so3:{l:"Sulfite",u:"ppm SO₃"}, cl:{l:"Chloride",u:"ppm"}, no2:{l:"Nitrite",u:"ppm NO₂"},
+  no3:{l:"Nitrate",u:"ppm"}, moly:{l:"Molybdate",u:"ppm MoO₄"}, condph:{l:"Condensate pH",u:""},
+  tds:{l:"TDS",u:"ppm"}, malk:{l:"M-alkalinity",u:"ppm CaCO₃"}, palk:{l:"P-alkalinity",u:"ppm CaCO₃"},
+  so4:{l:"Sulfate",u:"ppm"}, sio2:{l:"Silica",u:"ppm SiO₂"}, na:{l:"Sodium",u:"ppm"},
+  ba:{l:"Barium",u:"ppb"}, sr:{l:"Strontium",u:"ppm"}, ff:{l:"Fluoride",u:"ppm"},
+  sdi:{l:"SDI₁₅",u:""}, orp:{l:"ORP",u:"mV"}, do2:{l:"Dissolved oxygen",u:"ppm"}
+};
+const WA_PROFILES = [
+  ["mk","Makeup / City Water (Pretreatment)","The raw or city water feeding the site - what PT sizing and CT/BL makeup math read from"],
+  ["bl","Boiler & Feedwater","Boiler water and feedwater tests - BL calculators read from here"],
+  ["ct","Cooling Tower Water","The recirculating tower water itself - indices and tower diagnostics read from here"],
+  ["ro","RO Feed","Water at the RO inlet - scaling and permeate projections read from here"],
+  ["cl","Closed Loop","The loop sample - CL diagnostics read from here"]
 ];
-const WA = {};  /* live values, loaded by shell */
+const PROFILE_FIELDS = {
+  mk:["ph","cond","temp","th","cah","mgh","fe","mn","cl2","tcl2","po4","cu","cl","no3","so4","malk","palk","tds","sio2","na","ba","sr","ff"],
+  bl:["ph","cond","temp","th","malk","palk","so3","po4","cl","fe","cu","sio2","tds","do2","condph"],
+  ct:["ph","cond","temp","th","cah","mgh","malk","cl","so4","sio2","fe","cu","cl2","tcl2","orp","po4","moly","tds"],
+  ro:["ph","cond","temp","tds","th","cah","malk","cl","so4","sio2","ba","sr","ff","no3","cl2","sdi"],
+  cl:["ph","cond","temp","th","fe","cu","cl","so4","no2","no3","moly","do2","tds"]
+};
+const WA = {mk:{},bl:{},ct:{},ro:{},cl:{}};  /* live per-system analyses, loaded by shell */
 
 /* ---------------- calculator registry ---------------- */
 const CALCS = [];
@@ -1665,7 +1667,7 @@ inputs:[
   {k:"cr2", l:"Proposed condensate return", u:"%", d:"", h:[0,100]},
   {k:"condT", l:"Condensate temperature", u:"°F", d:180, h:[100,240]},
   {k:"mkT", l:"Makeup temperature", u:"°F", d:60, h:[35,212]},
-  {k:"mkTDS", l:"Makeup TDS", u:"ppm", d:"", h:[1,3000], wa:"tds"},
+  {k:"mkTDS", l:"Makeup TDS", u:"ppm", d:"", h:[1,3000], wa:"tds", ws:"mk"},
   {k:"cdTDS", l:"Condensate TDS", u:"ppm", d:10, h:[0,100]},
   {k:"eff", l:"Boiler efficiency", u:"%", d:80, dS:"boilerEff", h:[50,99]},
   {k:"fuel", l:"Fuel cost", u:"$/MMBTU", d:8, dS:"fuelCost", h:[1,60]},
@@ -1715,11 +1717,11 @@ id:"BL-08", mod:"bl", title:"Feedwater Blend (Makeup + Condensate)",
 purpose:"Feedwater quality from the makeup/condensate blend - and contamination screening on the condensate.",
 inputs:[
   {k:"cr", l:"Condensate return", u:"%", d:"", h:[0,100]},
-  {k:"mCond", l:"Makeup conductivity", u:"µS/cm", d:"", h:[0,5000], wa:"cond", sep:"Makeup values"},
-  {k:"mAlk", l:"Makeup M-alkalinity", u:"ppm CaCO₃", d:"", h:[0,500], wa:"malk"},
-  {k:"mTh", l:"Makeup hardness", u:"ppm CaCO₃", d:"", h:[0,50], wa:"th"},
-  {k:"mSi", l:"Makeup silica", u:"ppm SiO₂", d:"", h:[0,100], wa:"sio2"},
-  {k:"mFe", l:"Makeup iron", u:"ppm", d:"", h:[0,5], wa:"fe"},
+  {k:"mCond", l:"Makeup conductivity", u:"µS/cm", d:"", h:[0,5000], wa:"cond", ws:"mk", sep:"Makeup values"},
+  {k:"mAlk", l:"Makeup M-alkalinity", u:"ppm CaCO₃", d:"", h:[0,500], wa:"malk", ws:"mk"},
+  {k:"mTh", l:"Makeup hardness", u:"ppm CaCO₃", d:"", h:[0,50], wa:"th", ws:"mk"},
+  {k:"mSi", l:"Makeup silica", u:"ppm SiO₂", d:"", h:[0,100], wa:"sio2", ws:"mk"},
+  {k:"mFe", l:"Makeup iron", u:"ppm", d:"", h:[0,5], wa:"fe", ws:"mk"},
   {k:"cCond", l:"Condensate conductivity", u:"µS/cm", d:10, h:[0,2000], sep:"Condensate values"},
   {k:"cAlk", l:"Condensate alkalinity", u:"ppm CaCO₃", d:0, h:[0,100]},
   {k:"cTh", l:"Condensate hardness", u:"ppm CaCO₃", d:0, h:[0,50]},
@@ -1756,7 +1758,7 @@ id:"BL-09", mod:"bl", title:"Oxygen Scavenger Dosing",
 purpose:"Scavenger demand from dissolved O₂ plus the boiler-water residual target.",
 inputs:[
   {k:"fw", l:"Feedwater flow", u:"gal/day", d:"", h:[10,1e6]},
-  {k:"do2", l:"Feedwater dissolved O₂", u:"ppm", d:0.007, h:[0,15], help:"0.005-0.007 from a healthy pressurized DA; 0.5-1.0 atmospheric"},
+  {k:"do2", l:"Feedwater dissolved O₂", u:"ppm", d:0.007, h:[0,15], wa:"do2", help:"0.005-0.007 from a healthy pressurized DA; 0.5-1.0 atmospheric"},
   {k:"scav", l:"Scavenger", t:"sel", d:"sulfite", opts:SCAVENGERS.map(s=>[s.k,s.n])},
   {k:"ratio", l:"Feed ratio (override)", u:"ppm/ppm O₂", d:"", h:[0.5,30], help:"Blank = practical ratio for the product"},
   {k:"resid", l:"Target boiler residual", u:"ppm", d:30, h:[0,60]},
@@ -2159,11 +2161,11 @@ inputs:[
   {k:"siT", l:"Tower silica", u:"ppm SiO₂", d:"", h:[1,400]},
   {k:"caT", l:"Tower Ca hardness", u:"ppm CaCO₃", d:"", h:[1,4000]},
   {k:"mgT", l:"Tower Mg hardness", u:"ppm CaCO₃", d:"", h:[1,4000]},
-  {k:"cdM", l:"Makeup conductivity", u:"µS/cm", d:"", h:[5,5000], wa:"cond", sep:"Makeup water"},
-  {k:"clM", l:"Makeup chloride", u:"ppm", d:"", h:[0.5,2000], wa:"cl"},
-  {k:"siM", l:"Makeup silica", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2"},
-  {k:"caM", l:"Makeup Ca hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"cah"},
-  {k:"mgM", l:"Makeup Mg hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"mgh"},
+  {k:"cdM", l:"Makeup conductivity", u:"µS/cm", d:"", h:[5,5000], wa:"cond", ws:"mk", sep:"Makeup water"},
+  {k:"clM", l:"Makeup chloride", u:"ppm", d:"", h:[0.5,2000], wa:"cl", ws:"mk"},
+  {k:"siM", l:"Makeup silica", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2", ws:"mk"},
+  {k:"caM", l:"Makeup Ca hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"cah", ws:"mk"},
+  {k:"mgM", l:"Makeup Mg hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"mgh", ws:"mk"},
   {k:"mkV", l:"Makeup volume (optional)", u:"gal", d:"", h:[1,1e7], sep:"Water-balance check (optional)"},
   {k:"bdV", l:"Bleed + drift volume", u:"gal", d:"", h:[1,1e7]}
 ],
@@ -2384,14 +2386,14 @@ CALCS.push({
 id:"CT-05", mod:"ct", title:"Maximum Safe Cycles (Multi-Constraint Limit Finder)",
 purpose:"What actually caps cycles on this makeup water - every constraint evaluated, binding one highlighted. Limits are editable in Settings.",
 inputs:[
-  {k:"ca", l:"Makeup calcium hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"cah"},
-  {k:"mg", l:"Makeup magnesium hardness (optional)", u:"ppm CaCO₃", d:"", h:[0,1500], wa:"mgh"},
-  {k:"alk", l:"Makeup M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,1000], wa:"malk"},
-  {k:"tds", l:"Makeup TDS", u:"ppm", d:"", h:[10,5000], wa:"tds"},
-  {k:"cond", l:"Makeup conductivity", u:"µS/cm", d:"", h:[10,8000], wa:"cond"},
-  {k:"si", l:"Makeup silica (optional)", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2", help:"Rarely field-tested - skip if unknown"},
-  {k:"cl", l:"Makeup chloride", u:"ppm", d:"", h:[0.5,2000], wa:"cl"},
-  {k:"so4", l:"Makeup sulfate (optional)", u:"ppm", d:"", h:[0,2000], wa:"so4"},
+  {k:"ca", l:"Makeup calcium hardness", u:"ppm CaCO₃", d:"", h:[0.5,1500], wa:"cah", ws:"mk"},
+  {k:"mg", l:"Makeup magnesium hardness (optional)", u:"ppm CaCO₃", d:"", h:[0,1500], wa:"mgh", ws:"mk"},
+  {k:"alk", l:"Makeup M-alkalinity", u:"ppm CaCO₃", d:"", h:[1,1000], wa:"malk", ws:"mk"},
+  {k:"tds", l:"Makeup TDS", u:"ppm", d:"", h:[10,5000], wa:"tds", ws:"mk"},
+  {k:"cond", l:"Makeup conductivity", u:"µS/cm", d:"", h:[10,8000], wa:"cond", ws:"mk"},
+  {k:"si", l:"Makeup silica (optional)", u:"ppm SiO₂", d:"", h:[0.5,150], wa:"sio2", ws:"mk", help:"Rarely field-tested - skip if unknown"},
+  {k:"cl", l:"Makeup chloride", u:"ppm", d:"", h:[0.5,2000], wa:"cl", ws:"mk"},
+  {k:"so4", l:"Makeup sulfate (optional)", u:"ppm", d:"", h:[0,2000], wa:"so4", ws:"mk"},
   {k:"temp", l:"Hottest skin temperature", u:"°F", d:110, h:[40,250]},
   {k:"prog", l:"Treatment", t:"sel", d:"treated", opts:[["untreated","Untreated"],["treated","Good inhibitor program"]]},
   {k:"ss", l:"Stainless steel wetted", t:"sel", d:"none", opts:[["none","None / mild steel & copper"],["304","304 SS exchangers"],["316","316 SS exchangers"]]},
@@ -2534,13 +2536,14 @@ compute(v){
   if(!ok(v.coc)) return {};
   if(v.coc<=2) return {flags:[F("red","The formula needs COC above 2: the daily retained fraction 1 - 1/(COC-1) must be positive. At 2 cycles or below the slug washes out almost immediately; use continuous feed instead.")]};
   const frac = 1-1/(v.coc-1);            /* fraction of the slug still in the system after each day */
-  const days = Math.log(0.25)/Math.log(frac);
+  const tgt = S.redoseFrac/100;
+  const days = Math.log(tgt)/Math.log(frac);
   return {
-    out:[O("Time to next dose", days, "days", 1, "re-dose when the residual has fallen to ~25% of the slug", true)],
+    out:[O("Time to next dose", days, "days", 1, `re-dose when the residual has fallen to ~${fmt(S.redoseFrac,0)}% of the slug`, true)],
     work:[
-      "Days = ln(1/4) / ln(1 - 1/(COC-1))",
-      `     = ln(0.25) / ln(1 - 1/${fmt(v.coc-1,2)}) = -1.386 / ln(${fmt(frac,3)}) = -1.386 / ${fmt(Math.log(frac),3)} = ${fmt(days,2)} days`,
-      `Read: each day the system retains ${fmt(frac*100,0)}% of the slug; after ${fmt(days,1)} days only 25% is left.`
+      `Days = ln(${fmt(S.redoseFrac,0)}%) / ln(1 - 1/(COC-1))`,
+      `     = ln(${fmt(tgt,2)}) / ln(1 - 1/${fmt(v.coc-1,2)}) = ${fmt(Math.log(tgt),3)} / ${fmt(Math.log(frac),3)} = ${fmt(days,2)} days`,
+      `Read: each day the system retains ${fmt(frac*100,0)}% of the slug; after ${fmt(days,1)} days only ${fmt(S.redoseFrac,0)}% is left.`
     ],
     verdict:{level:"ok", msg:`At ${fmt(v.coc,1)} cycles, slug again in about ${fmt(days,1)} day(s). Higher cycles = less bleed = the slug lasts longer.`},
     flags:[
@@ -2549,11 +2552,11 @@ compute(v){
       F("info","Legionella: reference the site's water management plan (ASHRAE 188). This calculation is not a control program.")
     ],
     charts:[{kind:"line", title:"Days between doses vs cycles", xlab:"Cycles of concentration", ylab:"Days to next dose",
-      series:[{name:"Re-dose interval", pts:rng(2.3, Math.max(12, v.coc*1.3), 60).map(c=>[c, Math.log(0.25)/Math.log(1-1/(c-1))])}],
+      series:[{name:"Re-dose interval", pts:rng(2.3, Math.max(12, v.coc*1.3), 60).map(c=>[c, Math.log(tgt)/Math.log(1-1/(c-1))])}],
       markers:[{x:v.coc, y:days, label:`${fmt(v.coc,1)} cycles: ${fmt(days,1)} days`}], xd:1, yd:1}]
   };
 },
-notes:"House formula: days = ln(1/4) / ln(1 - 1/(COC-1)). Both logs are negative, so the result is positive days directly - no unit conversion needed."});
+notes:"House formula: days = ln(re-dose fraction) / ln(1 - 1/(COC-1)). The 25% threshold is editable in Settings → Non-ox biocide re-dose."});
 
 /* indicative ORP vs free halogen (Ag/AgCl reference, pH ~7.5-8.5 cooling water) */
 const ORP_RESID=[[0.05,480],[0.1,520],[0.2,555],[0.35,580],[0.5,600],[0.75,622],[1.0,640],[1.5,665],[2.0,685]];
@@ -2592,16 +2595,18 @@ compute(v){
       `Product = ${fmt(lb,2)} ÷ ${fmt(v.avail,2)} lb Cl₂/gal = ${fmt(gpd,2)} gal/day`);
     if(ok(v.cost)&&v.cost>0) out.push(O("Chemical cost", gpd*v.cost, "$/day", 2, `$${fmt(gpd*v.cost*365,0)}/yr`));
     if((v.resid||0)>1.0) flags.push(F("amber","Sustained free halogen above 1.0 ppm degrades tolyltriazole and organic inhibitors and attacks wood/fill - consider stabilized halogen or drop the setpoint."));
+    if(ok(v.resid)&&(v.resid<S.residMin||v.resid>S.residMax)) flags.push(F("info",`Target residual ${fmt(v.resid,2)} ppm is outside the house continuous band (${fmt(S.residMin,2)}-${fmt(S.residMax,2)} ppm, editable in Settings).`));
     if(v.method==="orp"){
       const impliedResid = (()=>{ for(const [r,mv] of ORP_RESID) if(mv>=v.orp) return r; return 2.5; })();
+      if(v.orp<S.orpMin||v.orp>S.orpMax) flags.push(F("amber",`Setpoint ${fmt(v.orp,0)} mV is outside the house ORP band (${fmt(S.orpMin,0)}-${fmt(S.orpMax,0)} mV, editable in Settings) - confirm intent against DPD.`));
       out.push(O("Implied free residual at setpoint", impliedResid, "ppm", 2, "indicative - verify against DPD tests"));
       if(ok(v.pumpgph)&&v.pumpgph>0){
         const duty=gpd/(v.pumpgph*24)*100;
         out.push(O("Expected pump duty cycle", duty, "%", 0, "feed time the controller should command"));
         work.push(`Duty = ${fmt(gpd,2)} gal/day ÷ (${fmt(v.pumpgph,2)} gph × 24) = ${fmt(duty,0)}%`);
-        if(duty>70) flags.push(F("red","Pump would run more than 70% of the time - undersized. It cannot recover from demand spikes; upsize the pump or raise the product strength."));
-        else if(duty<5) flags.push(F("amber","Pump duty under 5% - oversized. Control will hunt (overshoot/starve cycles); consider a smaller pump or diluted day tank."));
-        else flags.push(F("ok","Pump sizing is in the comfortable 5-70% duty band."));
+        if(duty>S.dutyMax) flags.push(F("red",`Pump would run more than ${fmt(S.dutyMax,0)}% of the time - undersized. It cannot recover from demand spikes; upsize the pump or raise the product strength.`));
+        else if(duty<S.dutyMin) flags.push(F("amber",`Pump duty under ${fmt(S.dutyMin,0)}% - oversized. Control will hunt (overshoot/starve cycles); consider a smaller pump or diluted day tank.`));
+        else flags.push(F("ok",`Pump sizing is in the comfortable ${fmt(S.dutyMin,0)}-${fmt(S.dutyMax,0)}% duty band.`));
       }
       if(ok(v.ph)&&v.ph>8.3) flags.push(F("amber",`At pH ${fmt(v.ph,1)}, hypochlorous acid shifts to the weaker OCl⁻ form and ORP reads LOWER for the same residual (roughly 40-80 mV per pH unit). Set the setpoint against a DPD test at the tower's actual pH - don't chase pH drift with more chlorine.`));
       flags.push(F("info","ORP housekeeping: calibrate/verify the probe monthly against DPD, clean the electrode on every visit, and log setpoint vs DPD residual - a drifting probe overfeeds silently."));
@@ -2697,7 +2702,7 @@ purpose:"Mils-per-year from coupon weight loss, judged against open-recirculatin
 inputs:[
   {k:"wl", l:"Weight loss", u:"mg", d:"", h:[0.1,5000]},
   {k:"metal", l:"Coupon metal", t:"sel", d:"ms", opts:METALS.map(m=>[m.k,m.n])},
-  {k:"area", l:"Coupon surface area", u:"in²", d:4.4, h:[0.5,50], help:"Standard 1/2 × 3 in strip ≈ 3.4-4.4 in² incl. edges - use the lab's value"},
+  {k:"area", l:"Coupon surface area", u:"in²", d:4.4, dS:"couponArea", h:[0.5,50], help:"Standard 1/2 × 3 in strip ≈ 3.4-4.4 in² incl. edges - use the lab's value"},
   {k:"days", l:"Exposure", u:"days", d:90, h:[7,400]},
   {k:"pit", l:"Pitting observed", t:"sel", d:"none", opts:[["none","None"],["light","Light"],["mod","Moderate"],["sev","Severe"]]}
 ],
@@ -2881,7 +2886,7 @@ compute(v){
   const out=[
     O("TCF baseline / current", NaN, "", 0, `${fmt(tcR,3)} / ${fmt(tcA,3)} (coefficient ${S.tcfCoeff})`),
     O("Normalized permeate flow", npf, "gpm", 2, `baseline ${fmt(v.qref,1)} gpm`),
-    O("Normalized flow decline", decl, "%", 1, "clean at 10-15%", true)
+    O("Normalized flow decline", decl, "%", 1, `clean at ${fmt(S.roFlowTrig,0)}%+ (Settings)`, true)
   ];
   const work=[
     `TCF = exp[${S.tcfCoeff} × (1/298.15 − 1/(T°C+273.15))]`,
@@ -2893,21 +2898,21 @@ compute(v){
   if(ok(v.dpref)&&ok(v.dpact)&&ok(v.qavgr)&&ok(v.qavga)){
     const ndpd=v.dpact*Math.pow(v.qavgr/v.qavga,1.5);
     dpInc=(ndpd/v.dpref-1)*100;
-    out.push(O("Normalized ΔP increase", dpInc, "%", 1, "clean at 15%"));
+    out.push(O("Normalized ΔP increase", dpInc, "%", 1, `clean at ${fmt(S.roDpTrig,0)}%`));
     work.push(`Norm ΔP = ${fmt(v.dpact,1)} × (${fmt(v.qavgr,1)}/${fmt(v.qavga,1)})^1.5 = ${fmt(ndpd,1)} psi → ${fmt(dpInc,1)}% vs baseline`);
   }
   if(ok(v.spref)&&ok(v.spact)){
     const nsp=v.spact*(v.qref/v.qact);
     spInc=(nsp/v.spref-1)*100;
-    out.push(O("Normalized salt passage increase", spInc, "%", 1, "clean at 10-15% (flow-corrected approximation)"));
+    out.push(O("Normalized salt passage increase", spInc, "%", 1, `clean at ${fmt(S.roSpTrig,0)}%+ (flow-corrected approximation)`));
     work.push(`NSP ≈ ${fmt(v.spact,2)}% × (${fmt(v.qref,1)}/${fmt(v.qact,1)}) = ${fmt(nsp,2)}% → ${fmt(spInc,1)}% vs baseline`);
   }
-  if(decl>=10) flags.push(F(decl>=15?"red":"amber",`Normalized flow is down ${fmt(decl,0)}% - ${decl>=15?"past":"at"} the cleaning trigger. Diagnose the foulant in RO-05.`));
-  else flags.push(F("ok","Normalized flow within 10% of baseline."));
-  if(ok(dpInc)&&dpInc>=15) flags.push(F("red",`Normalized ΔP up ${fmt(dpInc,0)}% - at/past the 15% cleaning trigger.`));
-  if(ok(spInc)&&spInc>=10) flags.push(F(spInc>=15?"red":"amber",`Normalized salt passage up ${fmt(spInc,0)}%.`));
+  if(decl>=S.roFlowTrig) flags.push(F(decl>=S.roFlowTrig*1.5?"red":"amber",`Normalized flow is down ${fmt(decl,0)}% - ${decl>=S.roFlowTrig*1.5?"past":"at"} the cleaning trigger. Diagnose the foulant in RO-05.`));
+  else flags.push(F("ok",`Normalized flow within ${fmt(S.roFlowTrig,0)}% of baseline.`));
+  if(ok(dpInc)&&dpInc>=S.roDpTrig) flags.push(F("red",`Normalized ΔP up ${fmt(dpInc,0)}% - at/past the ${fmt(S.roDpTrig,0)}% cleaning trigger.`));
+  if(ok(spInc)&&spInc>=S.roSpTrig) flags.push(F(spInc>=S.roSpTrig*1.5?"red":"amber",`Normalized salt passage up ${fmt(spInc,0)}%.`));
   return {out, work, flags,
-    verdict:{level:decl>=15||(ok(dpInc)&&dpInc>=15)?"red":decl>=10?"amber":"ok",
+    verdict:{level:decl>=S.roFlowTrig*1.5||(ok(dpInc)&&dpInc>=S.roDpTrig)?"red":decl>=S.roFlowTrig?"amber":"ok",
       msg:`Normalized flow ${fmt(npf,1)} gpm vs ${fmt(v.qref,1)} baseline (${decl>=0?"−":"+"}${fmt(Math.abs(decl),1)}%).`},
     charts:[{kind:"line", title:"Temperature correction factor (TCF)", xlab:"Water temperature (°F)", ylab:"TCF",
       series:[{name:"TCF", pts:rng(41,95,36).map(t=>[t,tcf(F2C(t))])}],
@@ -2928,20 +2933,20 @@ inputs:[
 compute(v){
   if(![v.fd,v.dp,v.sp].some(ok)) return {};
   const fd=v.fd||0, dp=v.dp||0, sp=v.sp||0;
-  const trig = fd>=10||dp>=15||sp>=10;
+  const trig = fd>=S.roFlowTrig||dp>=S.roDpTrig||sp>=S.roSpTrig;
   let diag, act, lvl;
   if(fd<-2 && sp>25){ diag="Oxidative membrane damage or o-ring/seal leak (flow UP + salt passage up sharply)"; act="Probe vessels to localize; check dechlorination NOW (PT-14/15). Chlorine damage is permanent - membrane replacement likely."; lvl="red"; }
   else if(fd>5 && sp>10 && dp<10 || v.stage==="last" && fd>5 && sp>5){ diag="Scaling (CaCO₃, CaSO₄, silica) - flow down, salt passage up, ΔP mostly in the tail stage"; act="Acid CIP (pH 2-3). Review antiscalant dose and recovery (RO-06/07)."; lvl="red"; }
   else if(fd>5 && dp>10 && v.stage==="first"){ diag="Particulate / colloidal or biological fouling - front-end ΔP rise"; act="Alkaline CIP (pH 11-12) + detergent; fix prefiltration, check SDI (RO-09); consider biocide."; lvl="red"; }
   else if(fd>5 && dp>10){ diag="Biofouling / organic fouling (flow down, ΔP up, salt passage up slightly)"; act="Alkaline CIP (pH 11-12); consider off-line biocide; find the nutrient source."; lvl="amber"; }
   else if(fd>5 && dp<5 && sp<5){ diag="Compaction or early oxidation (flow down, ΔP and salt passage flat)"; act="Not cleanable - verify chlorine history and feed pressure excursions."; lvl="amber"; }
-  else if(!trig){ diag="Within normal drift - no cleaning trigger hit"; act="Keep trending. Clean at 10% flow decline, 15% ΔP rise, or 10-15% salt passage rise - waiting longer makes cleanings less effective."; lvl="ok"; }
+  else if(!trig){ diag="Within normal drift - no cleaning trigger hit"; act=`Keep trending. Clean at ${fmt(S.roFlowTrig,0)}% flow decline, ${fmt(S.roDpTrig,0)}% ΔP rise, or ${fmt(S.roSpTrig,0)}% salt passage rise - waiting longer makes cleanings less effective.`; lvl="ok"; }
   else { diag="Mixed signals"; act="Re-verify normalization inputs (temperature and pressures) before cleaning."; lvl="amber"; }
   return {
     out:[
-      O("Flow decline", fd, "%", 1, "trigger 10-15%"),
-      O("ΔP increase", dp, "%", 1, "trigger 15%"),
-      O("Salt passage increase", sp, "%", 1, "trigger 10-15%")
+      O("Flow decline", fd, "%", 1, `trigger ${fmt(S.roFlowTrig,0)}%`),
+      O("ΔP increase", dp, "%", 1, `trigger ${fmt(S.roDpTrig,0)}%`),
+      O("Salt passage increase", sp, "%", 1, `trigger ${fmt(S.roSpTrig,0)}%`)
     ],
     verdict:{level:lvl, msg:`${diag}. → ${act}`},
     flags: trig?[F(lvl==="ok"?"info":lvl, "Cleaning trigger reached - clean promptly. Foulant left in place compacts and becomes permanent.")]:[],
@@ -3568,16 +3573,16 @@ CALCS.push({
 id:"CL-08", mod:"cl", title:"Closed Loop Water Quality Assessment",
 purpose:"Score a loop sample against healthy-loop ranges and auto-interpret the pattern.",
 inputs:[
-  {k:"ph", l:"pH", u:"", d:"", h:[4,13]},
-  {k:"fe", l:"Total iron", u:"ppm", d:"", h:[0,50]},
+  {k:"ph", l:"pH", u:"", d:"", h:[4,13], wa:"ph"},
+  {k:"fe", l:"Total iron", u:"ppm", d:"", h:[0,50], wa:"fe"},
   {k:"cu", l:"Total copper", u:"ppm", d:"", h:[0,10], wa:"cu"},
-  {k:"th", l:"Total hardness", u:"ppm CaCO₃", d:"", h:[0,1000]},
-  {k:"cl", l:"Chloride", u:"ppm", d:"", h:[0,2000]},
-  {k:"no2", l:"Nitrite residual", u:"ppm", d:"", h:[0,3000]},
+  {k:"th", l:"Total hardness", u:"ppm CaCO₃", d:"", h:[0,1000], wa:"th"},
+  {k:"cl", l:"Chloride", u:"ppm", d:"", h:[0,2000], wa:"cl"},
+  {k:"no2", l:"Nitrite residual", u:"ppm", d:"", h:[0,3000], wa:"no2"},
   {k:"no2t", l:"Nitrite target", u:"ppm", d:1000, h:[100,2000]},
   {k:"no3tr", l:"Nitrate trend", t:"sel", d:"unk", opts:[["unk","Unknown"],["flat","Flat/low"],["rise","Rising"]]},
   {k:"condtr", l:"Conductivity trend", t:"sel", d:"unk", opts:[["unk","Unknown"],["stable","Stable"],["rise","Rising"],["fall","Falling"]]},
-  {k:"do2", l:"Dissolved oxygen", u:"ppm", d:"", h:[0,15]},
+  {k:"do2", l:"Dissolved oxygen", u:"ppm", d:"", h:[0,15], wa:"do2"},
   {k:"look", l:"Appearance / odor", t:"sel", d:"clear", opts:[["clear","Clear"],["cloudy","Cloudy / turbid"],["black","Black water"],["blackodor","Black + rotten-egg odor"]]},
   {k:"srb", l:"SRB test", t:"sel", d:"nd", opts:[["nd","Not detected / not run"],["pos","Detected"]]}
 ],
@@ -3828,7 +3833,14 @@ const store = {
 
 /* ---------------- persisted state ---------------- */
 Object.assign(S, store.get("wtc_settings",{}));
-Object.assign(WA, store.get("wtc_wa",{}));
+{ /* load water analyses; migrate the old single flat analysis into the makeup profile */
+  const storedWA = store.get("wtc_wa",{});
+  if(storedWA && typeof storedWA==="object"){
+    if(WA_PROFILES.some(([pk])=>storedWA[pk] && typeof storedWA[pk]==="object")) Object.assign(WA, storedWA);
+    else if(Object.keys(storedWA).length) WA.mk = Object.assign({}, storedWA);
+  }
+}
+const MOD2PROF = {pt:"mk", bl:"bl", ct:"ct", ro:"ro", cl:"cl", cu:"mk"};
 const savedInputs = store.get("wtc_inputs",{});
 let metricOn = store.get("wtc_metric", false);
 let FAVS = store.get("wtc_favs", []);
@@ -4085,11 +4097,14 @@ function inputField(calc, def){
   const vm=el("div","valmsg"); f.appendChild(vm);
   if(def.help) f.appendChild(el("div","help",esc(def.help)));
   if(def.wa){
+    const src = def.ws || MOD2PROF[calc.mod] || "mk";
+    const profName = (WA_PROFILES.find(x=>x[0]===src)||["","analysis"])[1];
     const chip=el("button","wa-chip","⇩ analysis");
-    chip.type="button"; chip.title="Pull from the shared water analysis";
+    chip.type="button"; chip.title=`Pull from: ${profName}`;
     chip.addEventListener("click",()=>{
-      const raw=WA[def.wa];
-      if(raw===undefined||raw===""||raw===null){ vm.textContent="No value in Water Analysis yet"; vm.className="valmsg amber"; return; }
+      const P=WA[src]||{};
+      const raw=P[def.wa];
+      if(raw===undefined||raw===""||raw===null){ vm.textContent=`No value in "${profName}" yet`; vm.className="valmsg amber"; return; }
       let val=parseFloat(raw);
       if(def.waf) val=def.waf(val);
       inp.value=+val.toFixed(3);
@@ -4421,56 +4436,67 @@ function openCalc(id){
 }
 
 function buildWA(){
-  const grid=$("#wagrid");
-  let lastGroup=null;
-  WA_FIELDS.forEach(fdef=>{
-    if(fdef.g && fdef.g!==lastGroup){
-      grid.appendChild(el("div","inseph",esc(fdef.g)));
-      lastGroup=fdef.g;
-    }
-    const f=el("div","field");
-    f.innerHTML=`<label>${esc(fdef.l)}</label>`;
-    const wrapU=el("div","uwrap");
-    const inp=document.createElement("input");
-    inp.type="number"; inp.step="any"; inp.inputMode="decimal";
-    if(WA[fdef.k]!==undefined&&WA[fdef.k]!==null&&WA[fdef.k]!=="") inp.value=WA[fdef.k];
-    wrapU.appendChild(inp);
-    if(fdef.u) wrapU.appendChild(el("span","unit",esc(fdef.u)));
-    f.appendChild(wrapU);
-    grid.appendChild(f);
-    inp.addEventListener("input",()=>{
-      const val=inp.value.trim();
-      if(val==="") delete WA[fdef.k]; else WA[fdef.k]=parseFloat(val);
-      store.set("wtc_wa",WA);
+  const wrap=$("#waprofiles");
+  WA_PROFILES.forEach(([pk,label,blurb])=>{
+    const box=el("div","setgroup",`<h3>${esc(label)}</h3><div class="sethelp">${esc(blurb)}</div>`);
+    const grid=el("div","wagrid");
+    PROFILE_FIELDS[pk].forEach(fk=>{
+      const fdef=WA_LIB[fk];
+      const f=el("div","field");
+      f.innerHTML=`<label>${esc(fdef.l)}</label>`;
+      const wrapU=el("div","uwrap");
+      const inp=document.createElement("input");
+      inp.type="number"; inp.step="any"; inp.inputMode="decimal";
+      const cur=WA[pk]?WA[pk][fk]:undefined;
+      if(cur!==undefined&&cur!==null&&cur!=="") inp.value=cur;
+      wrapU.appendChild(inp);
+      if(fdef.u) wrapU.appendChild(el("span","unit",esc(fdef.u)));
+      f.appendChild(wrapU);
+      grid.appendChild(f);
+      inp.addEventListener("input",()=>{
+        if(!WA[pk]) WA[pk]={};
+        const val=inp.value.trim();
+        if(val==="") delete WA[pk][fk]; else WA[pk][fk]=parseFloat(val);
+        store.set("wtc_wa",WA);
+        renderWADerived();
+      });
+    });
+    box.appendChild(grid);
+    const btns=el("div","cardbtns");
+    const cb=el("button",null,"Clear this analysis");
+    cb.addEventListener("click",()=>{
+      WA[pk]={}; store.set("wtc_wa",WA);
+      grid.querySelectorAll("input").forEach(i=>i.value="");
       renderWADerived();
     });
-  });
-  $("#waClear").addEventListener("click",()=>{
-    Object.keys(WA).forEach(k=>delete WA[k]);
-    store.set("wtc_wa",WA);
-    grid.querySelectorAll("input").forEach(i=>i.value="");
-    renderWADerived();
+    btns.appendChild(cb);
+    box.appendChild(btns);
+    wrap.appendChild(box);
   });
   renderWADerived();
 }
 
 function renderWADerived(){
   const d=$("#waderived");
-  const n=Object.keys(WA).filter(k=>ok(WA[k])).length;
-  let h=`<h3>Derived values</h3><div class="sethelp">${n} field${n===1?"":"s"} entered - calculators with a “⇩ analysis” chip can pull these.</div>`;
-  const rows=[];
-  if(ok(WA.th)) rows.push(["Total hardness", `${fmt(WA.th/K.GPG,2)} gpg · ${fmt(WA.th/K.CACO3_EQ,2)} meq/L`]);
-  if(ok(WA.cond)&&!ok(WA.tds)) rows.push(["TDS estimate", `${fmt(WA.cond*S.tdsK,0)} ppm (K=${S.tdsK})`]);
-  if(ok(WA.cah)&&ok(WA.mgh)&&!ok(WA.th)) rows.push(["Total hardness (Ca+Mg)", `${fmt(WA.cah+WA.mgh,0)} ppm CaCO₃`]);
-  if(ok(WA.th)&&ok(WA.cah)&&WA.cah>WA.th) rows.push(["⚠ Check", "Calcium exceeds total hardness - retest"]);
-  if(ok(WA.ph)&&ok(WA.cah)&&ok(WA.malk)&&(ok(WA.tds)||ok(WA.cond))){
-    const tds=ok(WA.tds)?WA.tds:WA.cond*S.tdsK;
-    const r=lsiCalc(WA.ph,tds,WA.cah,WA.malk,ok(WA.temp)?WA.temp:77);
-    if(r) rows.push(["LSI (at entered/assumed temp)", fmt(r.lsi,2)+" - see CT-06 for the full read"]);
-  }
-  if(rows.length){
-    h+="<div class='twrap'><table class='data'><tbody>"+rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("")+"</tbody></table></div>";
-  }
+  let h="<h3>Derived values</h3>";
+  let any=false;
+  WA_PROFILES.forEach(([pk,label])=>{
+    const P=WA[pk]||{};
+    const n=Object.keys(P).filter(k=>ok(P[k])).length;
+    if(!n) return;
+    any=true;
+    const bits=[];
+    if(ok(P.th)) bits.push(`hardness ${fmt(P.th,0)} ppm (${fmt(P.th/K.GPG,1)} gpg)`);
+    const tds = ok(P.tds)?P.tds:(ok(P.cond)?P.cond*S.tdsK:NaN);
+    if(!ok(P.tds)&&ok(P.cond)) bits.push(`TDS est. ${fmt(tds,0)} ppm (K=${S.tdsK})`);
+    if(ok(P.cah)&&ok(P.th)&&P.cah>P.th) bits.push("⚠ Ca exceeds total hardness - retest");
+    if(ok(P.ph)&&ok(P.cah)&&ok(P.malk)&&ok(tds)){
+      const r=lsiCalc(P.ph,tds,P.cah,P.malk,ok(P.temp)?P.temp:77);
+      if(r) bits.push(`LSI ${fmt(r.lsi,2)}`);
+    }
+    h+=`<div style="margin-bottom:6px"><b>${esc(label)}</b>: ${n} field${n===1?"":"s"}${bits.length?" · "+bits.join(" · "):""}</div>`;
+  });
+  if(!any) h+="<div class='sethelp'>Nothing entered yet - fill any profile above and the calculators can pull from it with the ⇩ analysis chips.</div>";
   d.innerHTML=h;
 }
 
